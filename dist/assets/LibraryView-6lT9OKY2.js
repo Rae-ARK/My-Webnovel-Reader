@@ -1,1 +1,0 @@
-import{_ as r}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{c as s,a as o,o as t}from"./index-CKE8ZRWo.js";const a={},c={class:"shell"};function n(l,e){return t(),s("section",c,[...e[0]||(e[0]=[o("h1",null,"Library",-1),o("p",null,"Scaffolding placeholder.",-1)])])}const _=r(a,[["render",n]]);export{_ as default};

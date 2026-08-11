@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import site from './config/site'
-import { useThemeStore } from './stores/theme'
+import { useThemeStore } from './stores/theme.store'
 
 const themeStore = useThemeStore()
 

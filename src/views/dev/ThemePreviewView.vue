@@ -10,7 +10,7 @@ import Toggle from '../../components/ui/Toggle.vue'
 import Modal from '../../components/ui/Modal.vue'
 import Skeleton from '../../components/ui/Skeleton.vue'
 import Spinner from '../../components/ui/Spinner.vue'
-import { useThemeStore, type Theme } from '../../stores/theme'
+import { useThemeStore, type Theme } from '../../stores/theme.store'
 
 const themeStore = useThemeStore()
 
