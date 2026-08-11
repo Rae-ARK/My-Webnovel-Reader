@@ -1,6 +1,9 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
-import type { ReadingProgress } from "../models/user-state";
+import type {
+  Bookmark,
+  ReadingProgress,
+} from "../models/user-state";
 import type { ReaderChapter } from "../services/reader.service";
 import { appContainer } from "../container";
 
@@ -17,7 +20,10 @@ export const useReaderStore = defineStore("reader", () => {
     error.value = null;
 
     try {
-      const chapter = container.readerService.getChapter(fictionId, chapterId);
+      const chapter = container.readerService.getChapter(
+        fictionId,
+        chapterId,
+      );
 
       if (!chapter) {
         current.value = null;
@@ -26,12 +32,15 @@ export const useReaderStore = defineStore("reader", () => {
       }
 
       current.value = chapter;
-      progress.value = await container.readerService.getProgress(fictionId);
+      progress.value =
+        await container.readerService.getProgress(fictionId);
 
       return chapter;
     } catch (cause) {
       error.value =
-        cause instanceof Error ? cause.message : "Failed to load chapter.";
+        cause instanceof Error
+          ? cause.message
+          : "Failed to load chapter.";
 
       return null;
     } finally {
@@ -40,7 +49,8 @@ export const useReaderStore = defineStore("reader", () => {
   }
 
   async function loadProgress(fictionId: string) {
-    progress.value = await container.readerService.getProgress(fictionId);
+    progress.value =
+      await container.readerService.getProgress(fictionId);
 
     return progress.value;
   }
@@ -50,14 +60,47 @@ export const useReaderStore = defineStore("reader", () => {
     await container.readerService.saveProgress(nextProgress);
   }
 
-  function saveProgressDebounced(nextProgress: ReadingProgress, delay = 500) {
+  function saveProgressDebounced(
+    nextProgress: ReadingProgress,
+    delay = 500,
+  ) {
     progress.value = nextProgress;
 
-    container.readerService.saveProgressDebounced(nextProgress, delay);
+    container.readerService.saveProgressDebounced(
+      nextProgress,
+      delay,
+    );
   }
 
-  async function recordHistory(fictionId: string, chapterId: string) {
-    await container.readerService.recordHistory(fictionId, chapterId);
+  async function recordHistory(
+    fictionId: string,
+    chapterId: string,
+  ) {
+    await container.readerService.recordHistory(
+      fictionId,
+      chapterId,
+    );
+  }
+
+  async function addBookmark(input: {
+    fictionId: string;
+    chapterId: string;
+    position: number;
+    label?: string | null;
+  }) {
+    await container.userStateService.addBookmark(input);
+  }
+
+  async function removeBookmark(bookmarkId: string) {
+    await container.userStateService.removeBookmark(bookmarkId);
+  }
+
+  async function listBookmarksForFiction(
+    fictionId: string,
+  ): Promise<Bookmark[]> {
+    return container.userStateService.listBookmarksForFiction(
+      fictionId,
+    );
   }
 
   function clearError() {
@@ -78,6 +121,9 @@ export const useReaderStore = defineStore("reader", () => {
     saveProgress,
     saveProgressDebounced,
     recordHistory,
+    addBookmark,
+    removeBookmark,
+    listBookmarksForFiction,
     clearError,
     dispose,
   };

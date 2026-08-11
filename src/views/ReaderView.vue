@@ -1,21 +1,59 @@
 <script setup lang="ts">
 import {
+  computed,
   nextTick,
   onBeforeUnmount,
   onMounted,
   ref,
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import Button from '../components/ui/Button.vue'
+import IconButton from '../components/ui/IconButton.vue'
+import Slider from '../components/ui/Slider.vue'
 import { useReaderStore } from '../stores/reader.store'
+import { useSettingsStore } from '../stores/settings.store'
+import { useThemeStore, type Theme } from '../stores/theme.store'
+import type { Bookmark } from '../models/user-state'
 
 const route = useRoute()
 const router = useRouter()
+
 const reader = useReaderStore()
+const settings = useSettingsStore()
+const themeStore = useThemeStore()
 
-const readerContent = ref<HTMLElement | null>(null)
+const fictionId = computed(() => String(route.params.fictionId))
+const chapterId = computed(() => String(route.params.chapterId))
 
-const fictionId = () => String(route.params.fictionId)
-const chapterId = () => String(route.params.chapterId)
+const showControls = ref(false)
+const bookmarks = ref<Bookmark[]>([])
+const bookmarksLoading = ref(false)
+const bookmarkError = ref<string | null>(null)
+const settingsLoaded = ref(false)
+
+const fontSize = ref(18)
+const lineHeight = ref(1.7)
+const readingWidth = ref(48)
+
+const fontSizeOptions = {
+  min: 14,
+  max: 26,
+  step: 1,
+}
+
+const lineHeightOptions = {
+  min: 1.4,
+  max: 2.2,
+  step: 0.1,
+}
+
+const readingWidthOptions = {
+  min: 36,
+  max: 64,
+  step: 2,
+}
+
+const themeOptions: Theme[] = ['light', 'cream', 'dark']
 
 let scrollListenerAttached = false
 
@@ -41,7 +79,20 @@ const saveCurrentPosition = () => {
   }
 
   reader.saveProgressDebounced({
-    fictionId: fictionId(),
+    fictionId: fictionId.value,
+    chapterId: reader.current.chapter.id,
+    position: getReadingPosition(),
+    updatedAt: Date.now(),
+  })
+}
+
+const flushCurrentPosition = async () => {
+  if (!reader.current) {
+    return
+  }
+
+  await reader.saveProgress({
+    fictionId: fictionId.value,
     chapterId: reader.current.chapter.id,
     position: getReadingPosition(),
     updatedAt: Date.now(),
@@ -82,21 +133,125 @@ const recordCurrentHistory = async () => {
   }
 
   await reader.recordHistory(
-    fictionId(),
+    fictionId.value,
     reader.current.chapter.id,
   )
 }
 
+const loadSettings = async () => {
+  const storedFontSize =
+    await settings.get<number>('reader.fontSize')
+
+  const storedLineHeight =
+    await settings.get<number>('reader.lineHeight')
+
+  const storedReadingWidth =
+    await settings.get<number>('reader.width')
+
+  fontSize.value = storedFontSize ?? 18
+  lineHeight.value = storedLineHeight ?? 1.7
+  readingWidth.value = storedReadingWidth ?? 48
+
+  settingsLoaded.value = true
+}
+
+const saveReaderSetting = async (
+  key: string,
+  value: number,
+) => {
+  await settings.save(key, value)
+}
+
+const loadBookmarks = async () => {
+  bookmarksLoading.value = true
+  bookmarkError.value = null
+
+  try {
+    bookmarks.value =
+      await reader.listBookmarksForFiction(
+        fictionId.value,
+      )
+  } catch (cause) {
+    bookmarkError.value =
+      cause instanceof Error
+        ? cause.message
+        : 'Failed to load bookmarks.'
+  } finally {
+    bookmarksLoading.value = false
+  }
+}
+
+const addBookmark = async () => {
+  if (!reader.current) {
+    return
+  }
+
+  bookmarkError.value = null
+
+  try {
+    await reader.addBookmark({
+      fictionId: fictionId.value,
+      chapterId: reader.current.chapter.id,
+      position: getReadingPosition(),
+    })
+
+    await loadBookmarks()
+  } catch (cause) {
+    bookmarkError.value =
+      cause instanceof Error
+        ? cause.message
+        : 'Failed to add bookmark.'
+  }
+}
+
+const removeBookmark = async (bookmarkId: string) => {
+  bookmarkError.value = null
+
+  try {
+    await reader.removeBookmark(bookmarkId)
+    await loadBookmarks()
+  } catch (cause) {
+    bookmarkError.value =
+      cause instanceof Error
+        ? cause.message
+        : 'Failed to remove bookmark.'
+  }
+}
+
+const goToBookmark = async (bookmark: Bookmark) => {
+  if (bookmark.chapterId !== chapterId.value) {
+    await router.push(
+      `/read/${fictionId.value}/${bookmark.chapterId}`,
+    )
+
+    return
+  }
+
+  await nextTick()
+
+  const documentElement = document.documentElement
+  const scrollableHeight =
+    documentElement.scrollHeight - window.innerHeight
+
+  window.scrollTo({
+    top: Math.max(0, scrollableHeight * bookmark.position),
+    behavior: 'smooth',
+  })
+}
+
 const load = async () => {
+  await loadSettings()
+
   const chapter = await reader.loadChapter(
-    fictionId(),
-    chapterId(),
+    fictionId.value,
+    chapterId.value,
   )
 
   if (!chapter) {
     return
   }
 
+  await loadBookmarks()
   await recordCurrentHistory()
   await restoreReadingPosition()
 }
@@ -108,15 +263,50 @@ const goToChapter = async (
     return
   }
 
-  saveCurrentPosition()
+  await flushCurrentPosition()
 
   await router.push(
-    `/read/${fictionId()}/${nextChapterId}`,
+    `/read/${fictionId.value}/${nextChapterId}`,
   )
+
+  await load()
 }
 
 const handleScroll = () => {
   saveCurrentPosition()
+}
+
+const handleFontSizeChange = async (value: number) => {
+  fontSize.value = value
+
+  if (settingsLoaded.value) {
+    await saveReaderSetting(
+      'reader.fontSize',
+      value,
+    )
+  }
+}
+
+const handleLineHeightChange = async (value: number) => {
+  lineHeight.value = value
+
+  if (settingsLoaded.value) {
+    await saveReaderSetting(
+      'reader.lineHeight',
+      value,
+    )
+  }
+}
+
+const handleReadingWidthChange = async (value: number) => {
+  readingWidth.value = value
+
+  if (settingsLoaded.value) {
+    await saveReaderSetting(
+      'reader.width',
+      value,
+    )
+  }
 }
 
 onMounted(async () => {
@@ -135,14 +325,7 @@ onBeforeUnmount(() => {
     scrollListenerAttached = false
   }
 
-  if (reader.current) {
-    reader.saveProgress({
-      fictionId: fictionId(),
-      chapterId: reader.current.chapter.id,
-      position: getReadingPosition(),
-      updatedAt: Date.now(),
-    })
-  }
+  void flushCurrentPosition()
 
   reader.dispose()
 })
@@ -168,7 +351,7 @@ onBeforeUnmount(() => {
 
       <RouterLink
         class="button"
-        :to="`/fiction/${fictionId()}`"
+        :to="`/fiction/${fictionId}`"
       >
         Back to fiction
       </RouterLink>
@@ -177,14 +360,103 @@ onBeforeUnmount(() => {
     <article
       v-else-if="reader.current"
       class="reader"
+      :style="{
+        '--reader-font-size': `${fontSize}px`,
+        '--reader-line-height': lineHeight,
+        '--reader-width': `${readingWidth}rem`,
+      }"
     >
       <header class="reader__header">
-        <RouterLink
-          class="reader__back"
-          :to="`/fiction/${fictionId()}`"
+        <div class="reader__toolbar">
+          <RouterLink
+            class="reader__back"
+            :to="`/fiction/${fictionId}`"
+          >
+            ← Back to fiction
+          </RouterLink>
+
+          <div class="reader__actions">
+            <IconButton
+              label="Toggle reader settings"
+              :aria-expanded="showControls"
+              @click="showControls = !showControls"
+            >
+              Aa
+            </IconButton>
+
+            <Button
+              variant="secondary"
+              @click="addBookmark"
+            >
+              Bookmark
+            </Button>
+          </div>
+        </div>
+
+        <section
+          v-if="showControls"
+          class="reader-controls"
+          aria-label="Reader settings"
         >
-          ← Back to fiction
-        </RouterLink>
+          <div class="reader-controls__header">
+            <h2>Reader settings</h2>
+
+            <Button
+              variant="ghost"
+              @click="showControls = false"
+            >
+              Close
+            </Button>
+          </div>
+
+          <Slider
+            :model-value="fontSize"
+            label="Font size"
+            :min="fontSizeOptions.min"
+            :max="fontSizeOptions.max"
+            :step="fontSizeOptions.step"
+            @update:model-value="handleFontSizeChange"
+          />
+
+          <Slider
+            :model-value="lineHeight"
+            label="Line height"
+            :min="lineHeightOptions.min"
+            :max="lineHeightOptions.max"
+            :step="lineHeightOptions.step"
+            @update:model-value="handleLineHeightChange"
+          />
+
+          <Slider
+            :model-value="readingWidth"
+            label="Reading width"
+            :min="readingWidthOptions.min"
+            :max="readingWidthOptions.max"
+            :step="readingWidthOptions.step"
+            @update:model-value="handleReadingWidthChange"
+          />
+
+          <div class="reader-controls__themes">
+            <span class="reader-controls__label">
+              Theme
+            </span>
+
+            <div class="reader-controls__theme-buttons">
+              <Button
+                v-for="theme in themeOptions"
+                :key="theme"
+                :variant="
+                  themeStore.theme === theme
+                    ? 'primary'
+                    : 'secondary'
+                "
+                @click="themeStore.setTheme(theme)"
+              >
+                {{ theme }}
+              </Button>
+            </div>
+          </div>
+        </section>
 
         <p class="eyebrow">
           Chapter {{ reader.current.chapter.number }}
@@ -193,8 +465,66 @@ onBeforeUnmount(() => {
         <h1>{{ reader.current.chapter.title }}</h1>
       </header>
 
+      <section
+        v-if="bookmarks.length > 0 || bookmarksLoading"
+        class="reader-bookmarks"
+        aria-label="Bookmarks"
+      >
+        <div class="reader-bookmarks__header">
+          <h2>Bookmarks</h2>
+          <span>{{ bookmarks.length }}</span>
+        </div>
+
+        <p
+          v-if="bookmarksLoading"
+          class="reader-bookmarks__state"
+        >
+          Loading bookmarks...
+        </p>
+
+        <ul
+          v-else
+          class="reader-bookmarks__list"
+        >
+          <li
+            v-for="bookmark in bookmarks"
+            :key="bookmark.id"
+          >
+            <button
+              type="button"
+              class="reader-bookmark"
+              @click="goToBookmark(bookmark)"
+            >
+              <span>
+                Chapter {{ bookmark.chapterId === chapterId
+                  ? reader.current.chapter.number
+                  : bookmark.chapterId }}
+              </span>
+
+              <small>
+                {{ Math.round(bookmark.position * 100) }}%
+              </small>
+            </button>
+
+            <IconButton
+              label="Remove bookmark"
+              @click="removeBookmark(bookmark.id)"
+            >
+              ×
+            </IconButton>
+          </li>
+        </ul>
+
+        <p
+          v-if="bookmarkError"
+          class="reader-bookmarks__error"
+          role="alert"
+        >
+          {{ bookmarkError }}
+        </p>
+      </section>
+
       <div
-        ref="readerContent"
         class="reader__content"
         v-html="reader.current.chapter.content"
       />
@@ -236,7 +566,7 @@ onBeforeUnmount(() => {
 }
 
 .reader {
-  width: min(100%, 48rem);
+  width: min(100%, var(--reader-width));
   margin-inline: auto;
 }
 
@@ -244,15 +574,67 @@ onBeforeUnmount(() => {
   margin-bottom: 3rem;
 }
 
-.reader__back {
-  display: inline-block;
+.reader__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 2rem;
+}
+
+.reader__back {
   color: var(--text-muted);
   text-decoration: none;
 }
 
 .reader__back:hover {
   color: var(--text);
+}
+
+.reader__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reader-controls {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+  padding: 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 1rem);
+}
+
+.reader-controls__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.reader-controls__header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.reader-controls__themes {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.reader-controls__label {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.reader-controls__theme-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .reader__header h1 {
@@ -264,8 +646,8 @@ onBeforeUnmount(() => {
 
 .reader__content {
   color: var(--text);
-  font-size: 1.08rem;
-  line-height: 1.85;
+  font-size: var(--reader-font-size);
+  line-height: var(--reader-line-height);
 }
 
 .reader__content :deep(p) {
@@ -276,6 +658,82 @@ onBeforeUnmount(() => {
 .reader__content :deep(h3) {
   margin: 2.5rem 0 1rem;
   color: var(--text);
+}
+
+.reader-bookmarks {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 1rem);
+}
+
+.reader-bookmarks__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.reader-bookmarks__header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.reader-bookmarks__header span {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.reader-bookmarks__list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reader-bookmarks__list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reader-bookmark {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reader-bookmark:hover {
+  background: var(--bg-surface);
+}
+
+.reader-bookmark small {
+  color: var(--text-muted);
+}
+
+.reader-bookmarks__state,
+.reader-bookmarks__error {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.reader-bookmarks__error {
+  margin-top: 0.75rem;
+  color: var(--danger);
 }
 
 .reader__navigation {
@@ -320,5 +778,31 @@ onBeforeUnmount(() => {
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .reader-page {
+    padding-inline: 0.75rem;
+  }
+
+  .reader__toolbar {
+    align-items: flex-start;
+  }
+
+  .reader__actions {
+    flex-shrink: 0;
+  }
+
+  .reader__actions :deep(.ui-button) {
+    display: none;
+  }
+
+  .reader__navigation {
+    flex-direction: column;
+  }
+
+  .reader__navigation > * {
+    width: 100%;
+  }
 }
 </style>
