@@ -21,21 +21,24 @@ withDefaults(
 
 <template>
   <label class="ui-slider-field">
-    <span v-if="label" class="ui-slider-label">
+    <span
+      v-if="label"
+      class="ui-slider-label"
+    >
       {{ label }}
       <output>{{ model }}</output>
     </span>
 
     <input
-      v-model.number="model"
       :id="id"
+      v-model.number="model"
       type="range"
       :min="min"
       :max="max"
       :step="step"
       :disabled="disabled"
       class="ui-slider"
-    />
+    >
   </label>
 </template>
 

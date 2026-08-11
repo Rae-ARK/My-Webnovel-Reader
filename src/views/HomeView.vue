@@ -20,13 +20,18 @@ onMounted(async () => {
 <template>
   <main>
     <section class="shell hero">
-      <p class="eyebrow">{{ site.site.author }}</p>
+      <p class="eyebrow">
+        {{ site.site.author }}
+      </p>
 
       <h1>{{ site.site.title }}</h1>
 
       <p>{{ site.site.description }}</p>
 
-      <RouterLink class="button" to="/library">
+      <RouterLink
+        class="button"
+        to="/library"
+      >
         Browse library
       </RouterLink>
     </section>
@@ -38,8 +43,12 @@ onMounted(async () => {
     >
       <header class="section-header">
         <div>
-          <p class="eyebrow">Your reading</p>
-          <h2 id="continue-heading">Continue reading</h2>
+          <p class="eyebrow">
+            Your reading
+          </p>
+          <h2 id="continue-heading">
+            Continue reading
+          </h2>
         </div>
       </header>
 
@@ -58,8 +67,12 @@ onMounted(async () => {
     >
       <header class="section-header">
         <div>
-          <p class="eyebrow">Published collection</p>
-          <h2 id="library-heading">Library</h2>
+          <p class="eyebrow">
+            Published collection
+          </p>
+          <h2 id="library-heading">
+            Library
+          </h2>
         </div>
 
         <RouterLink to="/library">

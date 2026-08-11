@@ -25,7 +25,9 @@ watch([selectedGenre, selectedStatus], loadLibrary)
   <main class="shell library-page">
     <header class="page-header">
       <div>
-        <p class="eyebrow">Library</p>
+        <p class="eyebrow">
+          Library
+        </p>
         <h1>Browse fiction</h1>
         <p class="page-description">
           Explore the published collection and find something to read.
@@ -33,7 +35,10 @@ watch([selectedGenre, selectedStatus], loadLibrary)
       </div>
     </header>
 
-    <section class="library-filters" aria-label="Library filters">
+    <section
+      class="library-filters"
+      aria-label="Library filters"
+    >
       <label>
         <span>Genre</span>
         <select v-model="selectedGenre">
@@ -57,7 +62,6 @@ watch([selectedGenre, selectedStatus], loadLibrary)
           <option value="hiatus">Hiatus</option>
         </select>
       </label>
-
     </section>
 
     <div
@@ -80,7 +84,10 @@ watch([selectedGenre, selectedStatus], loadLibrary)
     >
       <h2>Unable to load the library</h2>
       <p>{{ library.error }}</p>
-      <button type="button" @click="loadLibrary">
+      <button
+        type="button"
+        @click="loadLibrary"
+      >
         Try again
       </button>
     </div>

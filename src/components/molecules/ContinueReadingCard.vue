@@ -11,18 +11,23 @@ defineProps<{
 
 <template>
   <article class="continue-card">
-    <div class="continue-card__cover" aria-hidden="true">
+    <div
+      class="continue-card__cover"
+      aria-hidden="true"
+    >
       <img
         v-if="fiction.cover"
         :src="fiction.cover"
         :alt="`${fiction.title} cover`"
         loading="lazy"
-      />
+      >
       <span v-else>{{ fiction.title.charAt(0) }}</span>
     </div>
 
     <div class="continue-card__content">
-      <p class="eyebrow">Continue reading</p>
+      <p class="eyebrow">
+        Continue reading
+      </p>
 
       <h2>{{ fiction.title }}</h2>
 

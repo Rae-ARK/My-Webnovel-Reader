@@ -17,28 +17,31 @@ withDefaults(
 </script>
 
 <template>
-  <label v-if="label" class="ui-input-field">
+  <label
+    v-if="label"
+    class="ui-input-field"
+  >
     <span class="ui-input-label">{{ label }}</span>
 
     <input
-      v-model="model"
       :id="id"
+      v-model="model"
       :type="type"
       :placeholder="placeholder"
       :disabled="disabled"
       class="ui-input"
-    />
+    >
   </label>
 
   <input
     v-else
-    v-model="model"
     :id="id"
+    v-model="model"
     :type="type"
     :placeholder="placeholder"
     :disabled="disabled"
     class="ui-input"
-  />
+  >
 </template>
 
 <style scoped>

@@ -31,14 +31,19 @@ const options = [
   <div class="preview">
     <header class="preview-header">
       <div>
-        <p class="eyebrow">Development</p>
+        <p class="eyebrow">
+          Development
+        </p>
         <h1>Theme Preview</h1>
         <p class="description">
           Stage 1 component and theme validation.
         </p>
       </div>
 
-      <div class="theme-switcher" aria-label="Theme selection">
+      <div
+        class="theme-switcher"
+        aria-label="Theme selection"
+      >
         <Button
           v-for="theme in themeStore.availableThemes"
           :key="theme"
@@ -56,10 +61,18 @@ const options = [
 
         <div class="row">
           <Button>Primary</Button>
-          <Button variant="secondary">Secondary</Button>
-          <Button variant="ghost">Ghost</Button>
-          <Button variant="danger">Danger</Button>
-          <Button disabled>Disabled</Button>
+          <Button variant="secondary">
+            Secondary
+          </Button>
+          <Button variant="ghost">
+            Ghost
+          </Button>
+          <Button variant="danger">
+            Danger
+          </Button>
+          <Button disabled>
+            Disabled
+          </Button>
         </div>
       </section>
 
@@ -67,9 +80,15 @@ const options = [
         <h2>Icon buttons</h2>
 
         <div class="row">
-          <IconButton label="Previous chapter">←</IconButton>
-          <IconButton label="Next chapter">→</IconButton>
-          <IconButton label="Settings">⚙</IconButton>
+          <IconButton label="Previous chapter">
+            ←
+          </IconButton>
+          <IconButton label="Next chapter">
+            →
+          </IconButton>
+          <IconButton label="Settings">
+            ⚙
+          </IconButton>
         </div>
       </section>
 
@@ -110,7 +129,9 @@ const options = [
           />
         </div>
 
-        <p class="value-preview">Value: {{ inputValue || 'Nothing entered' }}</p>
+        <p class="value-preview">
+          Value: {{ inputValue || 'Nothing entered' }}
+        </p>
       </section>
 
       <section>
@@ -122,7 +143,9 @@ const options = [
           :options="options"
         />
 
-        <p class="value-preview">Selected: {{ selectedOption }}</p>
+        <p class="value-preview">
+          Selected: {{ selectedOption }}
+        </p>
       </section>
 
       <section>
@@ -136,13 +159,18 @@ const options = [
           :step="1"
         />
 
-        <p class="value-preview">Font size: {{ sliderValue }}px</p>
+        <p class="value-preview">
+          Font size: {{ sliderValue }}px
+        </p>
       </section>
 
       <section>
         <h2>Toggle</h2>
 
-        <Toggle v-model="toggleValue" label="Enable reader feature" />
+        <Toggle
+          v-model="toggleValue"
+          label="Enable reader feature"
+        />
 
         <p class="value-preview">
           State: {{ toggleValue ? 'Enabled' : 'Disabled' }}
@@ -152,7 +180,9 @@ const options = [
       <section>
         <h2>Modal</h2>
 
-        <Button @click="modalOpen = true">Open modal</Button>
+        <Button @click="modalOpen = true">
+          Open modal
+        </Button>
 
         <Modal
           :open="modalOpen"
@@ -165,7 +195,10 @@ const options = [
           </p>
 
           <div class="modal-actions">
-            <Button variant="secondary" @click="modalOpen = false">
+            <Button
+              variant="secondary"
+              @click="modalOpen = false"
+            >
               Close
             </Button>
           </div>
@@ -177,10 +210,22 @@ const options = [
 
         <Card>
           <div class="skeleton-content">
-            <Skeleton width="40%" height="1.25rem" />
-            <Skeleton width="100%" height="0.875rem" />
-            <Skeleton width="85%" height="0.875rem" />
-            <Skeleton width="65%" height="0.875rem" />
+            <Skeleton
+              width="40%"
+              height="1.25rem"
+            />
+            <Skeleton
+              width="100%"
+              height="0.875rem"
+            />
+            <Skeleton
+              width="85%"
+              height="0.875rem"
+            />
+            <Skeleton
+              width="65%"
+              height="0.875rem"
+            />
           </div>
         </Card>
       </section>

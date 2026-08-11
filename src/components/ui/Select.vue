@@ -20,12 +20,15 @@ withDefaults(
 </script>
 
 <template>
-  <label v-if="label" class="ui-select-field">
+  <label
+    v-if="label"
+    class="ui-select-field"
+  >
     <span class="ui-select-label">{{ label }}</span>
 
     <select
-      v-model="model"
       :id="id"
+      v-model="model"
       :disabled="disabled"
       class="ui-select"
     >
@@ -41,8 +44,8 @@ withDefaults(
 
   <select
     v-else
-    v-model="model"
     :id="id"
+    v-model="model"
     :disabled="disabled"
     class="ui-select"
   >

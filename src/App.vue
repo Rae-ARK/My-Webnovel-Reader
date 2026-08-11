@@ -12,11 +12,20 @@ onMounted(() => {
 
 <template>
   <header class="site-header">
-    <RouterLink to="/" class="brand">{{ site.site.title }}</RouterLink>
+    <RouterLink
+      to="/"
+      class="brand"
+    >
+      {{ site.site.title }}
+    </RouterLink>
 
     <nav aria-label="Main navigation">
-      <RouterLink to="/library">Library</RouterLink>
-      <RouterLink to="/search">Search</RouterLink>
+      <RouterLink to="/library">
+        Library
+      </RouterLink>
+      <RouterLink to="/search">
+        Search
+      </RouterLink>
     </nav>
   </header>
 

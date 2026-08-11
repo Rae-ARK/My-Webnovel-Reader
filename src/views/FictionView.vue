@@ -39,30 +39,49 @@ onMounted(async () => {
 
 <template>
   <main class="shell fiction-page">
-    <div v-if="loading" class="state-message" aria-busy="true">
+    <div
+      v-if="loading"
+      class="state-message"
+      aria-busy="true"
+    >
       <p>Loading fiction...</p>
     </div>
 
-    <div v-else-if="error" class="state-message" role="alert">
+    <div
+      v-else-if="error"
+      class="state-message"
+      role="alert"
+    >
       <h1>Fiction unavailable</h1>
       <p>{{ error }}</p>
-      <RouterLink class="button" to="/library">
+      <RouterLink
+        class="button"
+        to="/library"
+      >
         Back to library
       </RouterLink>
     </div>
 
-    <article v-else-if="fiction" class="fiction-detail">
-      <div class="fiction-detail__cover" aria-hidden="true">
+    <article
+      v-else-if="fiction"
+      class="fiction-detail"
+    >
+      <div
+        class="fiction-detail__cover"
+        aria-hidden="true"
+      >
         <img
           v-if="fiction.cover"
           :src="fiction.cover"
           :alt="`${fiction.title} cover`"
-        />
+        >
         <span v-else>{{ fiction.title.charAt(0) }}</span>
       </div>
 
       <div class="fiction-detail__content">
-        <p class="eyebrow">Fiction</p>
+        <p class="eyebrow">
+          Fiction
+        </p>
 
         <h1>{{ fiction.title }}</h1>
 

@@ -43,14 +43,21 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="ui-modal-backdrop" @click.self="close">
+    <div
+      v-if="open"
+      class="ui-modal-backdrop"
+      @click.self="close"
+    >
       <section
         class="ui-modal"
         role="dialog"
         aria-modal="true"
         :aria-label="title"
       >
-        <header v-if="title" class="ui-modal-header">
+        <header
+          v-if="title"
+          class="ui-modal-header"
+        >
           <h2>{{ title }}</h2>
 
           <button

@@ -10,7 +10,10 @@ withDefaults(
 </script>
 
 <template>
-  <section class="ui-card" :class="`ui-card--${variant}`">
+  <section
+    class="ui-card"
+    :class="`ui-card--${variant}`"
+  >
     <slot />
   </section>
 </template>

@@ -68,13 +68,18 @@ function openResult(
           type="search"
           placeholder="Search novels..."
           autocomplete="off"
-        />
+        >
 
-        <button type="submit">Search</button>
+        <button type="submit">
+          Search
+        </button>
       </div>
     </form>
 
-    <p v-if="hasSearched" aria-live="polite">
+    <p
+      v-if="hasSearched"
+      aria-live="polite"
+    >
       {{ resultCountLabel }}
     </p>
 

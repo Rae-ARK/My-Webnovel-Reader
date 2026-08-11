@@ -26,7 +26,10 @@ withDefaults(
       <span class="ui-toggle-thumb" />
     </button>
 
-    <span v-if="label" class="ui-toggle-label">{{ label }}</span>
+    <span
+      v-if="label"
+      class="ui-toggle-label"
+    >{{ label }}</span>
   </label>
 </template>
 

@@ -6,5 +6,24 @@ export default tseslint.config(
   { ignores: ['dist', 'node_modules'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  ...vue.configs['flat/essential'],
+  ...vue.configs['flat/recommended'],
+  {
+    files: ['**/*.vue'],
+    languageOptions: {
+      parserOptions: {
+        parser: tseslint.parser,
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        extraFileExtensions: ['.vue'],
+      },
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        KeyboardEvent: 'readonly',
+      },
+    },
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
 )

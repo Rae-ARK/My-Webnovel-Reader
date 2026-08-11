@@ -13,13 +13,16 @@ defineProps<{
       :to="`/fiction/${fiction.id}`"
       :aria-label="`View ${fiction.title}`"
     >
-      <div class="fiction-card__cover" aria-hidden="true">
+      <div
+        class="fiction-card__cover"
+        aria-hidden="true"
+      >
         <img
           v-if="fiction.cover"
           :src="fiction.cover"
           :alt="`${fiction.title} cover`"
           loading="lazy"
-        />
+        >
         <span v-else>{{ fiction.title.charAt(0) }}</span>
       </div>
 
