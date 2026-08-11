@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import {
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useReaderStore } from '../stores/reader.store'
 
@@ -7,29 +12,138 @@ const route = useRoute()
 const router = useRouter()
 const reader = useReaderStore()
 
-const fictionId = computed(() => String(route.params.fictionId))
-const chapterId = computed(() => String(route.params.chapterId))
+const readerContent = ref<HTMLElement | null>(null)
 
-const load = async () => {
-  await reader.loadChapter(
-    fictionId.value,
-    chapterId.value,
+const fictionId = () => String(route.params.fictionId)
+const chapterId = () => String(route.params.chapterId)
+
+let scrollListenerAttached = false
+
+const getReadingPosition = (): number => {
+  const documentElement = document.documentElement
+
+  const scrollableHeight =
+    documentElement.scrollHeight - window.innerHeight
+
+  if (scrollableHeight <= 0) {
+    return 0
+  }
+
+  return Math.min(
+    1,
+    Math.max(0, window.scrollY / scrollableHeight),
   )
 }
 
-const goToChapter = (nextChapterId: string | null | undefined) => {
+const saveCurrentPosition = () => {
+  if (!reader.current) {
+    return
+  }
+
+  reader.saveProgressDebounced({
+    fictionId: fictionId(),
+    chapterId: reader.current.chapter.id,
+    position: getReadingPosition(),
+    updatedAt: Date.now(),
+  })
+}
+
+const restoreReadingPosition = async () => {
+  await nextTick()
+
+  const position = reader.progress?.position ?? 0
+
+  if (position <= 0) {
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    })
+
+    return
+  }
+
+  const documentElement = document.documentElement
+  const scrollableHeight =
+    documentElement.scrollHeight - window.innerHeight
+
+  if (scrollableHeight <= 0) {
+    return
+  }
+
+  window.scrollTo({
+    top: scrollableHeight * position,
+    behavior: 'auto',
+  })
+}
+
+const recordCurrentHistory = async () => {
+  if (!reader.current) {
+    return
+  }
+
+  await reader.recordHistory(
+    fictionId(),
+    reader.current.chapter.id,
+  )
+}
+
+const load = async () => {
+  const chapter = await reader.loadChapter(
+    fictionId(),
+    chapterId(),
+  )
+
+  if (!chapter) {
+    return
+  }
+
+  await recordCurrentHistory()
+  await restoreReadingPosition()
+}
+
+const goToChapter = async (
+  nextChapterId: string | null | undefined,
+) => {
   if (!nextChapterId) {
     return
   }
 
-  router.push(
-    `/read/${fictionId.value}/${nextChapterId}`,
+  saveCurrentPosition()
+
+  await router.push(
+    `/read/${fictionId()}/${nextChapterId}`,
   )
 }
 
-onMounted(load)
+const handleScroll = () => {
+  saveCurrentPosition()
+}
+
+onMounted(async () => {
+  window.addEventListener('scroll', handleScroll, {
+    passive: true,
+  })
+
+  scrollListenerAttached = true
+
+  await load()
+})
 
 onBeforeUnmount(() => {
+  if (scrollListenerAttached) {
+    window.removeEventListener('scroll', handleScroll)
+    scrollListenerAttached = false
+  }
+
+  if (reader.current) {
+    reader.saveProgress({
+      fictionId: fictionId(),
+      chapterId: reader.current.chapter.id,
+      position: getReadingPosition(),
+      updatedAt: Date.now(),
+    })
+  }
+
   reader.dispose()
 })
 </script>
@@ -54,7 +168,7 @@ onBeforeUnmount(() => {
 
       <RouterLink
         class="button"
-        :to="`/fiction/${fictionId}`"
+        :to="`/fiction/${fictionId()}`"
       >
         Back to fiction
       </RouterLink>
@@ -67,7 +181,7 @@ onBeforeUnmount(() => {
       <header class="reader__header">
         <RouterLink
           class="reader__back"
-          :to="`/fiction/${fictionId}`"
+          :to="`/fiction/${fictionId()}`"
         >
           ← Back to fiction
         </RouterLink>
@@ -80,6 +194,7 @@ onBeforeUnmount(() => {
       </header>
 
       <div
+        ref="readerContent"
         class="reader__content"
         v-html="reader.current.chapter.content"
       />
