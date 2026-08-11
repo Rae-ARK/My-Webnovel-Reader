@@ -196,3 +196,76 @@ Now components assemble from Stage 1 primitives + Stage 4 stores:
 
 Stages 0–6 alone produce a complete, deployable, offline-capable single-reader
 app with no optional features — a sensible place to pause and ship a v1.
+
+---
+
+## Amendments (pre-implementation review)
+
+A review of this plan before build start surfaced a few corrections, folded
+in here as the canonical guidance for the stages above.
+
+**Browser-only initialization.** SvelteKit + `adapter-static` + `sql.js`
+needs careful browser-only initialization. SQLite WASM, IndexedDB, Google
+Identity Services, and service workers all depend on browser APIs. Keep
+those imports behind client-side boundaries (`browser` checks / dynamic
+`import()` in `onMount`, never top-level in a module SvelteKit could
+evaluate during SSR or prerendering) rather than letting the build touch
+them at all.
+
+**Google Sign-In and Drive authorization are separate concerns.** They can
+appear in one user-facing flow at Stage 8, but they are not the same thing.
+Sign-In identifies the user; Drive authorization is a separate, narrower
+grant. Request the minimum Drive scope necessary — not broader Drive access
+than the sync feature actually needs.
+
+**Layers are a dependency direction, not a mandate.** The
+`routes → stores → services → repositories → db` chain describes which way
+dependencies point, not a ceremonial requirement that every read pass
+through all five. This plan's own "no boilerplate for its own sake" rule
+already covers it: a tiny settings getter doesn't need a procession through
+every layer to return a number.
+
+**`PublishedDatabase` is immutable by design (Stage 2a).** The reader must
+have no code path capable of writing to the author's SQLite database — not
+as a convention, but as an API-level guarantee. This is arguably the most
+important boundary in the whole architecture:
+
+```text
+                  PUBLISHED DATA
+                       │
+                       ▼
+                 SQLite WASM
+                       │
+                    READ ONLY
+                       │
+                       ▼
+                    Reader
+                  USER DATA
+                       │
+                       ▼
+                   IndexedDB
+                       │
+                 READ + WRITE
+                       │
+                       ▼
+                optional Drive
+```
+
+Stage ordering is otherwise unchanged and confirmed sound — notably, keeping
+Google Drive out of the core architecture means Stages 0–7 remain fully
+independent of Google, so the "no backend" promise never quietly becomes
+"no backend except the one we backed into."
+
+```text
+Stage 0   foundation
+Stage 1   visual system
+Stage 2   storage
+Stage 3   business logic
+Stage 4   reactive state
+Stage 5   actual reader
+Stage 6   reader personalization
+Stage 7   search
+Stage 8   optional cloud
+Stage 9   optional offline enhancement
+Stage 10  production
+```
