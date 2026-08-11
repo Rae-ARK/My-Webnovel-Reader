@@ -8,6 +8,7 @@ import { UserStateService } from "./services/user-state.service";
 import { LocalSyncService, type SyncService } from "./services/sync.service";
 
 export interface AppContainer {
+  initialize(): Promise<void>;
   contentRepository: ContentRepository;
   userStateRepository: UserStateRepository;
   libraryService: LibraryService;
@@ -23,6 +24,9 @@ export function createContainer(): AppContainer {
   const userStateRepository = new UserStateRepository();
 
   return {
+    async initialize() {
+      await contentRepository.load();
+    },
     contentRepository,
     userStateRepository,
     libraryService: new LibraryService(contentRepository, userStateRepository),

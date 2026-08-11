@@ -1,4 +1,6 @@
 *.patch
+*.docx
+*.sqlite
 
 node_modules
 
@@ -29,3 +31,9 @@ dist/
 
 # Local development backups
 *.bak
+
+# Local novel/content data
+.venv/
+public/content/covers/
+public/content/library.sqlite
+public/content/library.sqlite.demo-backup

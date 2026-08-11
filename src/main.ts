@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import './styles.css'
+import { appContainer } from './container'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -22,4 +23,15 @@ const router = createRouter({
   ],
 })
 
-createApp(App).use(createPinia()).use(router).mount('#app')
+async function bootstrap() {
+  await appContainer.initialize()
+
+  createApp(App)
+    .use(createPinia())
+    .use(router)
+    .mount('#app')
+}
+
+bootstrap().catch((error) => {
+  console.error('Failed to initialize application:', error)
+})
