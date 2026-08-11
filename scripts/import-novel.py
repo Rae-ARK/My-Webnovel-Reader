@@ -1,19 +1,60 @@
 from pathlib import Path
 from html import escape
+import json
 import re
 import sqlite3
+import sys
 
 from docx import Document
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCX = ROOT / "docs/Summoned by Mistake Deployment 1.docx"
 DB = ROOT / "public/content/library.sqlite"
 
-FICTION_ID = "fiction-summoned-by-mistake"
-TITLE = "Summoned by Mistake, I Decided to Learn How to Live"
-AUTHOR = "Rae ARK"
-STATUS = "ongoing"
-COVER = "/content/covers/summoned-by-mistake.png"
+DEFAULT_CONFIG_PATH = ROOT / "scripts/novel.config.json"
+EXAMPLE_CONFIG_PATH = ROOT / "scripts/novel.config.example.json"
+
+REQUIRED_CONFIG_KEYS = (
+    "fiction_id",
+    "title",
+    "author",
+    "status",
+    "cover",
+    "docx",
+)
+
+
+def load_config(path):
+    if not path.exists():
+        raise RuntimeError(
+            f"Novel config not found at {path}.\n"
+            f"Copy {EXAMPLE_CONFIG_PATH.relative_to(ROOT)} to "
+            f"{path.relative_to(ROOT)} and fill in this fiction's "
+            "details. This file is author-specific and is not committed."
+        )
+
+    with path.open(encoding="utf-8") as handle:
+        config = json.load(handle)
+
+    missing = [key for key in REQUIRED_CONFIG_KEYS if key not in config]
+
+    if missing:
+        raise RuntimeError(
+            f"Novel config at {path} is missing required key(s): "
+            f"{', '.join(missing)}"
+        )
+
+    return config
+
+
+config_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_CONFIG_PATH
+config = load_config(config_path)
+
+FICTION_ID = config["fiction_id"]
+TITLE = config["title"]
+AUTHOR = config["author"]
+STATUS = config["status"]
+COVER = config["cover"]
+DOCX = ROOT / config["docx"]
 
 INDEX_PATTERN = re.compile(r"^\s*index\b", re.IGNORECASE)
 CHAPTER_PATTERN = re.compile(r"^\s*chapter\s+(\d+)\b", re.IGNORECASE)
@@ -111,48 +152,52 @@ for position, start in enumerate(heading_indexes):
     })
 
 
-indexes = [
-    {
-        "title": "Index of ARC 1",
-        "position": 0,
-        "entries": [],
-    },
-    {
-        "title": "Index of ARC 2",
-        "position": 1,
-        "entries": [],
-    },
-    {
-        "title": "Index of ARC 3",
-        "position": 2,
-        "entries": [],
-    },
-]
+DEFAULT_INDEX_TITLE = "Index"
 
+# Indexes and their entries are derived entirely from the document's own
+# structure. A section whose title matches INDEX_PATTERN (e.g. "Index of
+# ARC 1", "Part One", "Volume I", "Book 2", ...) declares a new index using
+# whatever title the author wrote. Every readable entry that follows belongs
+# to the most recently declared index. If the document never declares an
+# index heading before its first entry, a single default index titled
+# "Index" is created to hold it. Nothing here is specific to any one
+# fiction's naming scheme, chapter count, or numbering.
+
+indexes = []
 entries = []
 
+current_index = None
 entry_number = 0
+
+
+def start_new_index(title):
+    index = {
+        "title": title,
+        "position": len(indexes),
+        "entries": [],
+    }
+    indexes.append(index)
+    return index
+
 
 for section in sections:
     title = section["title"]
 
     if INDEX_PATTERN.match(title):
+        current_index = start_new_index(title)
         continue
 
     entry_number += 1
 
     entry_type = classify_entry(title)
-    chapter_match = CHAPTER_PATTERN.match(title)
+    chapter_number = (
+        get_chapter_number(title) if entry_type == "chapter" else None
+    )
 
-    if entry_type == "chapter":
-        if not chapter_match:
-            raise RuntimeError(
-                f"Could not determine chapter number from: {title!r}"
-            )
-
-        chapter_number = int(chapter_match.group(1))
-    else:
-        chapter_number = None
+    if entry_type == "chapter" and chapter_number is None:
+        raise RuntimeError(
+            f"Could not determine chapter number from: {title!r}"
+        )
 
     entry = {
         "id": f"{FICTION_ID}-entry-{entry_number}",
@@ -165,37 +210,17 @@ for section in sections:
 
     entries.append(entry)
 
-    normalized = title.strip().lower()
+    if current_index is None:
+        # No explicit index heading has appeared yet in the document.
+        # Every fiction still gets an index; entries encountered before
+        # any explicit heading fall under this default one.
+        current_index = start_new_index(DEFAULT_INDEX_TITLE)
 
-    if chapter_number is not None:
-        if chapter_number <= 5:
-            arc_position = 0
-        elif chapter_number <= 13:
-            arc_position = 1
-        else:
-            arc_position = 2
-    elif normalized in {"interlude", "afterward"}:
-        arc_position = 0
-    elif normalized == "author's afterward":
-        arc_position = 1
-    elif entry_type == "extra":
-        arc_position = 2
-    else:
-        raise RuntimeError(
-            f"Could not assign entry to an index: {title!r}"
-        )
-
-    indexes[arc_position]["entries"].append(entry)
+    current_index["entries"].append(entry)
 
 
-expected_counts = [7, 9, 14]
-actual_counts = [len(index["entries"]) for index in indexes]
-
-if actual_counts != expected_counts:
-    raise RuntimeError(
-        f"Unexpected index distribution: {actual_counts}; "
-        f"expected {expected_counts}"
-    )
+if not entries:
+    raise RuntimeError("No readable entries found in document")
 
 
 

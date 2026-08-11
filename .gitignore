@@ -37,6 +37,7 @@ dist/
 public/content/covers/
 public/content/library.sqlite
 public/content/library.sqlite.demo-backup
+scripts/novel.config.json
 
 # Local Python virtual environments
 .venv/
