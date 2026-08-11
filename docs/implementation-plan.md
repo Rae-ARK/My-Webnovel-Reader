@@ -45,7 +45,7 @@ Goal: empty but correctly-shaped SvelteKit app.
 
 ## Stage 1 — Design System & Theming
 
-This comes *before* features so nothing gets built twice.
+This comes _before_ features so nothing gets built twice.
 
 - **Theme tokens as CSS custom properties**, three sets:
   - `light` — normal light mode
@@ -74,6 +74,7 @@ This comes *before* features so nothing gets built twice.
 Two independent tracks, per architecture §9–10, §21:
 
 **2a. Published content (read-only)**
+
 - `lib/db/PublishedDatabase.ts` — thin wrapper around `sql.js` / SQLite WASM:
   load `library.sqlite` from `config.content.database`, expose `query()`/`get()`.
 - `lib/repositories/ContentRepository.ts` — typed methods only
@@ -81,6 +82,7 @@ Two independent tracks, per architecture §9–10, §21:
   `searchFTS`) — no raw SQL leaks past this file.
 
 **2b. Reader personal state**
+
 - `lib/db/UserStateDatabase.ts` — wrapper around `idb` (small IndexedDB
   helper lib, avoids hand-rolled boilerplate) with stores for
   `progress`, `bookmarks`, `favorites`, `history`, `settings`.

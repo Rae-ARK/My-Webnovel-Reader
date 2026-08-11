@@ -119,29 +119,29 @@ Example conceptual configuration:
 
 ```ts
 export default {
-    site: {
-        title: "My Web Novel",
-        author: "Author Name",
-        description: "A collection of web novels."
-    },
+	site: {
+		title: 'My Web Novel',
+		author: 'Author Name',
+		description: 'A collection of web novels.'
+	},
 
-    content: {
-        source: "deployment",
-        database: "/content/library.sqlite",
-        assets: "/content/assets/"
-    },
+	content: {
+		source: 'deployment',
+		database: '/content/library.sqlite',
+		assets: '/content/assets/'
+	},
 
-    reader: {
-        defaultTheme: "dark",
-        defaultFontSize: 18,
-        defaultLineHeight: 1.7,
-        enableTTS: true
-    },
+	reader: {
+		defaultTheme: 'dark',
+		defaultFontSize: 18,
+		defaultLineHeight: 1.7,
+		enableTTS: true
+	},
 
-    sync: {
-        enabled: true,
-        provider: "google-drive"
-    }
+	sync: {
+		enabled: true,
+		provider: 'google-drive'
+	}
 };
 ```
 
@@ -465,21 +465,19 @@ Example:
 
 ```json
 {
-    "version": 1,
-    "favorites": [
-        "novel-001"
-    ],
-    "progress": {
-        "novel-001": {
-            "chapterId": "chapter-042",
-            "position": 18342
-        }
-    },
-    "settings": {
-        "theme": "dark",
-        "fontSize": 18,
-        "lineHeight": 1.7
-    }
+	"version": 1,
+	"favorites": ["novel-001"],
+	"progress": {
+		"novel-001": {
+			"chapterId": "chapter-042",
+			"position": 18342
+		}
+	},
+	"settings": {
+		"theme": "dark",
+		"fontSize": 18,
+		"lineHeight": 1.7
+	}
 }
 ```
 
@@ -826,32 +824,32 @@ A strange file extension does not make configuration secret.
 
 ```ts
 export default {
-    site: {
-        title: "Author's Web Novels",
-        author: "Author Name",
-        description: "Original web novels."
-    },
+	site: {
+		title: "Author's Web Novels",
+		author: 'Author Name',
+		description: 'Original web novels.'
+	},
 
-    content: {
-        source: "deployment",
-        database: "/content/library.sqlite",
-        assets: "/content/"
-    },
+	content: {
+		source: 'deployment',
+		database: '/content/library.sqlite',
+		assets: '/content/'
+	},
 
-    reader: {
-        defaultTheme: "dark",
-        defaultFontSize: 18,
-        defaultLineHeight: 1.7,
-        enableTTS: true
-    },
+	reader: {
+		defaultTheme: 'dark',
+		defaultFontSize: 18,
+		defaultLineHeight: 1.7,
+		enableTTS: true
+	},
 
-    features: {
-        search: true,
-        favorites: true,
-        bookmarks: true,
-        googleSync: true,
-        offlineMode: true
-    }
+	features: {
+		search: true,
+		favorites: true,
+		bookmarks: true,
+		googleSync: true,
+		offlineMode: true
+	}
 };
 ```
 

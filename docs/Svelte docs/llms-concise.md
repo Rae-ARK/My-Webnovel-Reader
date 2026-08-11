@@ -71,7 +71,6 @@ Components are the building blocks of Svelte applications. They are written into
 All three sections — script, styles and markup — are optional.
 
 ```svelte
-/// file: MyComponent.svelte
 <script module>
 	// module-level logic goes here
 	// (you will rarely use this)
@@ -80,6 +79,8 @@ All three sections — script, styles and markup — are optional.
 <script>
 	// instance-level logic goes here
 </script>
+
+/// file: MyComponent.svelte
 
 <!-- markup (zero or more items) goes here -->
 
@@ -92,7 +93,7 @@ All three sections — script, styles and markup — are optional.
 
 A `<script>` block contains JavaScript (or TypeScript, when adding the `lang="ts"` attribute) that runs when a component instance is created. Variables declared (or imported) at the top level can be referenced in the component's markup.
 
-In addition to normal JavaScript, you can use *runes* to declare component props (`$props`) and add reactivity to your component.
+In addition to normal JavaScript, you can use _runes_ to declare component props (`$props`) and add reactivity to your component.
 
 ### `<script module>`
 
@@ -136,9 +137,9 @@ Besides `.svelte` files, Svelte also operates on `.svelte.js` and `.svelte.ts` f
 
 ## What are runes?
 
-> **rune** /ruːn/ *noun* — A letter or mark used as a mystical or magic symbol.
+> **rune** /ruːn/ _noun_ — A letter or mark used as a mystical or magic symbol.
 
-Runes are symbols that you use in `.svelte` and `.svelte.js`/`.svelte.ts` files to control the Svelte compiler. If you think of Svelte as a language, runes are part of the syntax — they are *keywords*.
+Runes are symbols that you use in `.svelte` and `.svelte.js`/`.svelte.ts` files to control the Svelte compiler. If you think of Svelte as a language, runes are part of the syntax — they are _keywords_.
 
 Runes have a `$` prefix and look like functions:
 
@@ -156,7 +157,7 @@ They differ from normal JavaScript functions in important ways:
 
 ## `$state`
 
-The `$state` rune allows you to create *reactive state*, which means that your UI *reacts* when it changes.
+The `$state` rune allows you to create _reactive state_, which means that your UI _reacts_ when it changes.
 
 ```svelte
 <script>
@@ -172,14 +173,12 @@ Unlike other frameworks, there is no API for interacting with state — `count` 
 
 ### Deep state
 
-If `$state` is used with an array or a simple object, the result is a deeply reactive *state proxy*. Proxies allow Svelte to run code when you read or write properties, including via methods like `array.push(...)`, triggering granular updates.
+If `$state` is used with an array or a simple object, the result is a deeply reactive _state proxy_. Proxies allow Svelte to run code when you read or write properties, including via methods like `array.push(...)`, triggering granular updates.
 
 State is proxified recursively until Svelte finds something other than an array or simple object (like a class or `Object.create` object).
 
 ```js
-let todos = $state([
-	{ done: false, text: 'add more todos' }
-]);
+let todos = $state([{ done: false, text: 'add more todos' }]);
 ```
 
 Modifying an individual todo's property triggers updates to anything depending on that specific property:
@@ -194,7 +193,7 @@ Pushing a new object to the array also proxifies it:
 todos.push({ done: false, text: 'eat lunch' });
 ```
 
-> When you update properties of proxies, the original object is *not* mutated. If you need your own proxy handlers, wrap the object *after* wrapping it in `$state`.
+> When you update properties of proxies, the original object is _not_ mutated. If you need your own proxy handlers, wrap the object _after_ wrapping it in `$state`.
 
 Destructuring a reactive value evaluates references at the point of destructuring (as in normal JS) — they are not reactive:
 
@@ -233,7 +232,7 @@ Svelte provides reactive implementations of built-in classes like `Set`, `Map`, 
 
 ### `$state.raw`
 
-For objects/arrays you don't want deeply reactive, use `$state.raw`. Raw state cannot be mutated, only *reassigned*:
+For objects/arrays you don't want deeply reactive, use `$state.raw`. Raw state cannot be mutated, only _reassigned_:
 
 ```js
 let person = $state.raw({ name: 'Heraclitus', age: 49 });
@@ -241,7 +240,7 @@ person.age += 1; // no effect
 person = { name: 'Heraclitus', age: 50 }; // works
 ```
 
-Improves performance for large arrays/objects you weren't planning to mutate. Raw state can *contain* reactive state.
+Improves performance for large arrays/objects you weren't planning to mutate. Raw state can _contain_ reactive state.
 
 ### `$state.snapshot`
 
@@ -272,27 +271,33 @@ Use sparingly, only for feedback in response to user action.
 
 ### Passing state into functions
 
-JavaScript is pass-by-value. To have access to *current* values, you need functions:
+JavaScript is pass-by-value. To have access to _current_ values, you need functions:
 
 ```js
 function add(getA, getB) {
 	return () => getA() + getB();
 }
-let a = 1, b = 2;
-let total = add(() => a, () => b);
+let a = 1,
+	b = 2;
+let total = add(
+	() => a,
+	() => b
+);
 console.log(total()); // 3
 ```
 
-State in Svelte works the same way — referencing something declared with `$state` accesses its *current value*. This includes get/set properties on proxies — though for that pattern, consider classes instead.
+State in Svelte works the same way — referencing something declared with `$state` accesses its _current value_. This includes get/set properties on proxies — though for that pattern, consider classes instead.
 
 ### Passing state across modules
 
-You can declare state in `.svelte.js`/`.svelte.ts` files, but can only *export* it if it's not directly reassigned:
+You can declare state in `.svelte.js`/`.svelte.ts` files, but can only _export_ it if it's not directly reassigned:
 
 ```js
 // NOT allowed:
 export let count = $state(0);
-export function increment() { count += 1; }
+export function increment() {
+	count += 1;
+}
 ```
 
 This is because the compiler transforms every reference to `count`, but only within the same file — the compiler can't transform references in importing files.
@@ -301,15 +306,21 @@ Two ways to share state between modules — don't reassign it:
 
 ```js
 export const counter = $state({ count: 0 });
-export function increment() { counter.count += 1; }
+export function increment() {
+	counter.count += 1;
+}
 ```
 
 ...or don't directly export it:
 
 ```js
 let count = $state(0);
-export function getCount() { return count; }
-export function increment() { count += 1; }
+export function getCount() {
+	return count;
+}
+export function increment() {
+	count += 1;
+}
 ```
 
 ## `$derived`
@@ -319,8 +330,8 @@ export function increment() { count += 1; }
 	let count = $state(0);
 	let doubled = $derived(count * 2);
 </script>
-<button onclick={() => count++}>{doubled}</button>
-<p>{count} doubled is {doubled}</p>
+
+<button onclick={() => count++}>{doubled}</button><p>{count} doubled is {doubled}</p>
 ```
 
 The expression inside `$derived(...)` should be free of side-effects; Svelte disallows state changes inside derived expressions. Class fields can be marked `$derived` too.
@@ -346,9 +357,9 @@ For complex derivations that don't fit a short expression, use `$derived.by` wit
 
 ### Understanding dependencies
 
-Anything read synchronously inside the `$derived` expression is a *dependency*. When state changes, the derived is marked *dirty* and recalculated when next read.
+Anything read synchronously inside the `$derived` expression is a _dependency_. When state changes, the derived is marked _dirty_ and recalculated when next read.
 
-If an expression contains `await`, Svelte transforms it so state *after* the `await` is also tracked (only for the expression itself, not functions it calls). To exempt state from dependency tracking, use `untrack`.
+If an expression contains `await`, Svelte transforms it so state _after_ the `await` is also tracked (only for the expression itself, not functions it calls). To exempt state from dependency tracking, use `untrack`.
 
 ### Overriding derived values
 
@@ -361,10 +372,14 @@ Since Svelte 5.25, derived values can be temporarily overridden by reassigning t
 
 	async function onclick() {
 		likes += 1;
-		try { await like(); }
-		catch { likes -= 1; }
+		try {
+			await like();
+		} catch {
+			likes -= 1;
+		}
 	}
 </script>
+
 <button {onclick}>🧡 {likes}</button>
 ```
 
@@ -387,13 +402,13 @@ let c = $derived(_stuff.c);
 
 ### Update propagation
 
-Svelte uses *push-pull reactivity* — state updates immediately notify everything that depends on them (push), but deriveds aren't re-evaluated until read (pull). If a derived's new value is referentially identical to the old one, downstream updates are skipped.
+Svelte uses _push-pull reactivity_ — state updates immediately notify everything that depends on them (push), but deriveds aren't re-evaluated until read (pull). If a derived's new value is referentially identical to the old one, downstream updates are skipped.
 
 ## `$effect`
 
 Effects run when state updates; used for calling third-party libraries, drawing on `<canvas>`, network requests. They only run in the browser, not during SSR.
 
-Generally you should *not* update state inside effects — see "When not to use `$effect`" below.
+Generally you should _not_ update state inside effects — see "When not to use `$effect`" below.
 
 ```svelte
 <script>
@@ -408,6 +423,7 @@ Generally you should *not* update state inside effects — see "When not to use 
 		context.fillRect(0, 0, size, size);
 	});
 </script>
+
 <canvas bind:this={canvas} width="100" height="100"></canvas>
 ```
 
@@ -419,7 +435,7 @@ Effects run after the component has mounted to the DOM, in a microtask after sta
 
 > Svelte uses effects internally to represent template logic — that's how `{name}` expressions update.
 
-An effect can return a *teardown function*, run immediately before the effect re-runs or when destroyed:
+An effect can return a _teardown function_, run immediately before the effect re-runs or when destroyed:
 
 ```svelte
 <script>
@@ -427,7 +443,9 @@ An effect can return a *teardown function*, run immediately before the effect re
 	let milliseconds = $state(1000);
 
 	$effect(() => {
-		const interval = setInterval(() => { count += 1; }, milliseconds);
+		const interval = setInterval(() => {
+			count += 1;
+		}, milliseconds);
 		return () => clearInterval(interval);
 	});
 </script>
@@ -435,15 +453,15 @@ An effect can return a *teardown function*, run immediately before the effect re
 
 ### Understanding dependencies
 
-`$effect` picks up reactive values (`$state`, `$derived`, `$props`) *synchronously* read (including indirectly via function calls). If `$state`/`$derived` are used directly inside the `$effect` (e.g. during creation of a reactive class), they are NOT treated as dependencies.
+`$effect` picks up reactive values (`$state`, `$derived`, `$props`) _synchronously_ read (including indirectly via function calls). If `$state`/`$derived` are used directly inside the `$effect` (e.g. during creation of a reactive class), they are NOT treated as dependencies.
 
-Values read *asynchronously* (after `await` or in `setTimeout`) are not tracked. An effect only reruns when the *object* it reads changes, not a property inside it (mutation vs reassignment).
+Values read _asynchronously_ (after `await` or in `setTimeout`) are not tracked. An effect only reruns when the _object_ it reads changes, not a property inside it (mutation vs reassignment).
 
-An effect only depends on values read the *last time it ran* — conditional code means dependencies can change between runs.
+An effect only depends on values read the _last time it ran_ — conditional code means dependencies can change between runs.
 
 ### `$effect.pre`
 
-Runs code *before* the DOM updates (otherwise identical to `$effect`):
+Runs code _before_ the DOM updates (otherwise identical to `$effect`):
 
 ```svelte
 <script>
@@ -472,6 +490,7 @@ Advanced feature — tells you if code is running inside a tracking context (eff
 		console.log('in effect:', $effect.tracking()); // true
 	});
 </script>
+
 <p>in template: {$effect.tracking()}</p> <!-- true -->
 ```
 
@@ -490,6 +509,7 @@ When using `await` in components, `$effect.pending()` tells you how many promise
 		return a + b;
 	}
 </script>
+
 <p>{a} + {b} = {await add(a, b)}</p>
 {#if $effect.pending()}
 	<p>pending promises: {$effect.pending()}</p>
@@ -502,8 +522,12 @@ Advanced feature — creates a non-tracked scope that doesn't auto-cleanup, for 
 
 ```js
 const destroy = $effect.root(() => {
-	$effect(() => { /* setup */ });
-	return () => { /* cleanup */ };
+	$effect(() => {
+		/* setup */
+	});
+	return () => {
+		/* cleanup */
+	};
 });
 destroy();
 ```
@@ -517,7 +541,9 @@ destroy();
 <script>
 	let count = $state(0);
 	let doubled = $state();
-	$effect(() => { doubled = count * 2; });
+	$effect(() => {
+		doubled = count * 2;
+	});
 </script>
 ```
 
@@ -544,6 +570,7 @@ Props are passed to components like attributes:
 <script>
 	import MyComponent from './MyComponent.svelte';
 </script>
+
 <MyComponent adjective="cool" />
 ```
 
@@ -554,6 +581,7 @@ Received via `$props`, usually destructured:
 <script>
 	let { adjective } = $props();
 </script>
+
 <p>this component is {adjective}</p>
 ```
 
@@ -579,10 +607,10 @@ let { a, b, c, ...others } = $props();
 
 ### Updating props
 
-Prop references update when the prop updates in the parent, but the child can temporarily *reassign* the prop (useful for unsaved ephemeral state). You should NOT *mutate* props unless bindable.
+Prop references update when the prop updates in the parent, but the child can temporarily _reassign_ the prop (useful for unsaved ephemeral state). You should NOT _mutate_ props unless bindable.
 
 - If the prop is a regular object, mutation has no effect.
-- If the prop is a reactive state proxy, mutation *will* have an effect but triggers an `ownership_invalid_mutation` warning (component mutating state it doesn't 'own').
+- If the prop is a reactive state proxy, mutation _will_ have an effect but triggers an `ownership_invalid_mutation` warning (component mutating state it doesn't 'own').
 - Fallback values of non-`$bindable` props are left untouched (not reactive proxies), so mutations don't cause updates.
 
 In summary: don't mutate props. Use callback props, or `$bindable` if parent/child should share the object.
@@ -614,35 +642,38 @@ DOM element interfaces are in `svelte/elements`. Snippet props like `children` s
 <script>
 	const uid = $props.id();
 </script>
+
 <label for="{uid}-firstname">First Name: </label>
 <input id="{uid}-firstname" type="text" />
 ```
 
 ## `$bindable`
 
-Props ordinarily flow one way (parent → child). `$bindable` allows data to flow up too, and allows a state proxy to be *mutated* in the child.
+Props ordinarily flow one way (parent → child). `$bindable` allows data to flow up too, and allows a state proxy to be _mutated_ in the child.
 
 ```svelte
-/// file: FancyInput.svelte
 <script>
 	let { value = $bindable(), ...props } = $props();
 </script>
-<input bind:value={value} {...props} />
+
+/// file: FancyInput.svelte
+<input bind:value {...props} />
 ```
 
 Parent uses `bind:`:
 
 ```svelte
-/// file: App.svelte
 <script>
 	import FancyInput from './FancyInput.svelte';
 	let message = $state('hello');
 </script>
+
+/// file: App.svelte
 <FancyInput bind:value={message} />
 <p>{message}</p>
 ```
 
-Parent doesn't *have* to use `bind:` — can pass a normal prop. Fallback for unbound case:
+Parent doesn't _have_ to use `bind:` — can pass a normal prop. Fallback for unbound case:
 
 ```js
 let { value = $bindable('fallback'), ...props } = $props();
@@ -681,13 +712,15 @@ $inspect(count).with((type, count) => {
 When compiling as a custom element, `$host` provides access to the host element (e.g. to dispatch custom events):
 
 ```svelte
-/// file: Stepper.svelte
 <svelte:options customElement="my-stepper" />
+
 <script>
 	function dispatch(type) {
 		$host().dispatchEvent(new CustomEvent(type));
 	}
 </script>
+
+/// file: Stepper.svelte
 <button onclick={() => dispatch('decrement')}>decrement</button>
 <button onclick={() => dispatch('increment')}>increment</button>
 ```
@@ -702,7 +735,7 @@ Lowercase (`<div>`) = HTML element. Capitalised or dot-notation (`<Widget>`, `<m
 
 ### Element attributes
 
-Work like HTML by default; values may be unquoted; can contain or *be* JS expressions.
+Work like HTML by default; values may be unquoted; can contain or _be_ JS expressions.
 
 ```svelte
 <a href="page/{p}">page {p}</a>
@@ -738,13 +771,14 @@ Order matters (later spreads/attrs override earlier).
 <button onclick={() => console.log('clicked')}>click me</button>
 ```
 
-Case sensitive (`onclick` vs `onClick` listen to different events). Same rules as attributes apply (shorthand, spread). Event attributes always fire after binding events. Some handlers attached with `addEventListener` directly, others *delegated*.
+Case sensitive (`onclick` vs `onClick` listen to different events). Same rules as attributes apply (shorthand, spread). Event attributes always fire after binding events. Some handlers attached with `addEventListener` directly, others _delegated_.
 
 `ontouchstart`/`ontouchmove` handlers are passive by default for performance; use `on` from `svelte/events` if you truly need `preventDefault()` (e.g. in an action).
 
 #### Event delegation
 
 Reduces memory footprint: a single listener at the app root handles delegated events. Gotchas:
+
 - Manually dispatched events need `{ bubbles: true }` to reach the app root.
 - Avoid `stopPropagation` with `addEventListener` directly — prefer `on` from `svelte/events`.
 
@@ -919,6 +953,7 @@ Functions that run in an effect when an element mounts or when state read inside
 		return () => console.log('cleaning up');
 	}
 </script>
+
 <div {@attach myAttachment}>...</div>
 ```
 
@@ -926,12 +961,16 @@ An element can have any number of attachments.
 
 ### Attachment factories
 
-A function can *return* an attachment (e.g. `tooltip(content)`), re-running when reactive dependencies change.
+A function can _return_ an attachment (e.g. `tooltip(content)`), re-running when reactive dependencies change.
 
 ### Inline attachments
 
 ```svelte
-<canvas {@attach (canvas) => { /* ... */ }}></canvas>
+<canvas
+	{@attach (canvas) => {
+		/* ... */
+	}}
+></canvas>
 ```
 
 ### Conditional attachments
@@ -1014,7 +1053,7 @@ Usable anywhere; can reference outer values; visible to siblings and children in
 `bind:property={get, set}` for validation/transformation (Svelte 5.9.0+):
 
 ```svelte
-<input bind:value={() => value, (v) => value = v.toLowerCase()} />
+<input bind:value={() => value, (v) => (value = v.toLowerCase())} />
 ```
 
 For readonly bindings (e.g. dimension bindings), `get` should be `null`:
@@ -1095,7 +1134,7 @@ Value is `undefined` until mounted — read inside an effect/handler, not during
 <Keypad bind:value={pin} />
 ```
 
-Mark the prop bindable in the child with `$bindable()`. Declaring bindable means it *can* (not *must*) be bound. Bindable props can have fallback values (applies only when unbound; if bound + fallback present, parent must supply non-undefined or a runtime error is thrown).
+Mark the prop bindable in the child with `$bindable()`. Declaring bindable means it _can_ (not _must_) be bound. Bindable props can have fallback values (applies only when unbound; if bound + fallback present, parent must supply non-undefined or a runtime error is thrown).
 
 ## `use:`
 
@@ -1108,14 +1147,17 @@ Actions run when an element mounts, added via `use:`, typically using `$effect` 
 	function myaction(node) {
 		$effect(() => {
 			// setup
-			return () => { /* teardown */ };
+			return () => {
+				/* teardown */
+			};
 		});
 	}
 </script>
+
 <div use:myaction>...</div>
 ```
 
-Called with an argument: `use:myaction={data}` — called once (not during SSR), does *not* re-run if the argument changes.
+Called with an argument: `use:myaction={data}` — called once (not during SSR), does _not_ re-run if the argument changes.
 
 > **Legacy:** Before `$effect`, actions could return `{ update, destroy }` — effects are preferred now.
 
@@ -1125,13 +1167,14 @@ Called with an argument: `use:myaction={data}` — called once (not during SSR),
 
 ## `transition:`
 
-Triggered by an element entering/leaving the DOM due to a state change. While a block transitions out, all its elements (even without their own transitions) stay in the DOM until every transition completes. `transition:` is *bidirectional* — reversible mid-flight.
+Triggered by an element entering/leaving the DOM due to a state change. While a block transitions out, all its elements (even without their own transitions) stay in the DOM until every transition completes. `transition:` is _bidirectional_ — reversible mid-flight.
 
 ```svelte
 <script>
 	import { fade } from 'svelte/transition';
 	let visible = $state(false);
 </script>
+
 {#if visible}<div transition:fade>fades in and out</div>{/if}
 ```
 
@@ -1157,7 +1200,7 @@ transition = (node, params, options: { direction: 'in' | 'out' | 'both' }) => ({
 })
 ```
 
-If `css` is returned, Svelte generates web-animation keyframes. `t` goes 0→1 (in) or 1→0 (out) after easing; `u = 1 - t`. Called repeatedly *before* the transition begins. Prefer `css` over `tick` (web animations run off main thread). If the function returns a function instead of an object, it's called in the next microtask (enables crossfade coordination). Third arg `options.direction` is `in`/`out`/`both`.
+If `css` is returned, Svelte generates web-animation keyframes. `t` goes 0→1 (in) or 1→0 (out) after easing; `u = 1 - t`. Called repeatedly _before_ the transition begins. Prefer `css` over `tick` (web animations run off main thread). If the function returns a function instead of an object, it's called in the next microtask (enables crossfade coordination). Third arg `options.direction` is `in`/`out`/`both`.
 
 ### Transition events
 
@@ -1169,7 +1212,7 @@ Like `transition:` but not bidirectional — an `in` continues playing alongside
 
 ## `animate:`
 
-Triggered when contents of a *keyed* each block reorder (not on add/remove). Must be on an element that's an *immediate* child of a keyed each block. Use built-in (`svelte/animate`) or custom functions.
+Triggered when contents of a _keyed_ each block reorder (not on add/remove). Must be on an element that's an _immediate_ child of a keyed each block. Use built-in (`svelte/animate`) or custom functions.
 
 ```svelte
 {#each list as item, index (item)}
@@ -1222,7 +1265,7 @@ Since 5.16, `class` can be an object or array (converted via `clsx`):
 
 ```svelte
 <div class={{ cool, lame: !cool }}>...</div>
-<div class={[faded && 'saturate-0 opacity-50', large && 'scale-200']}>...</div>
+<div class={[faded && 'opacity-50 saturate-0', large && 'scale-200']}>...</div>
 ```
 
 Arrays can nest arrays/objects (flattened) — useful for combining local classes with props:
@@ -1238,8 +1281,9 @@ Since 5.19, `ClassValue` type exported from `svelte/elements` for type-safe clas
 Pre-5.16 convenience, largely superseded by the `class` attribute's object/array form:
 
 ```svelte
-<div class:cool={cool} class:lame={!cool}>...</div>
-<div class:cool class:lame={!cool}>...</div> <!-- shorthand -->
+<div class:cool class:lame={!cool}>...</div>
+<div class:cool class:lame={!cool}>...</div>
+<!-- shorthand -->
 ```
 
 ## `await`
@@ -1268,7 +1312,7 @@ Errors in `await` bubble to the nearest error boundary (`<svelte:boundary>`).
 
 ### Forking
 
-`fork(...)` (from `svelte`, added 5.42) lets you run `await` expressions you *expect* to happen soon (e.g. preloading on hover/focus), returning a `Fork` with `commit()`/`discard()`.
+`fork(...)` (from `svelte`, added 5.42) lets you run `await` expressions you _expect_ to happen soon (e.g. preloading on hover/focus), returning a `Fork` with `commit()`/`discard()`.
 
 ### Caveats / Breaking changes
 
@@ -1292,9 +1336,15 @@ Scoped selectors get a specificity increase of 0-1-0 from the scoping class — 
 
 ```svelte
 <style>
-	:global(body) { margin: 0; }
-	div :global(strong) { color: goldenrod; }
-	p:global(.big.red) { /* ... */ }
+	:global(body) {
+		margin: 0;
+	}
+	div :global(strong) {
+		color: goldenrod;
+	}
+	p:global(.big.red) {
+		/* ... */
+	}
 </style>
 ```
 
@@ -1324,7 +1374,7 @@ Pass static/dynamic CSS custom properties to components:
 
 Desugars to a wrapping `<svelte-css-wrapper style="display:contents; ...">` (or `<g>` for SVG). Read with `var(...)` and fallbacks inside the component. Custom properties can also be defined on a parent element/`:root` in a global stylesheet.
 
-> The extra wrapper element doesn't affect layout but *does* affect selectors using `>` to target a direct child of the component's container.
+> The extra wrapper element doesn't affect layout but _does_ affect selectors using `>` to target a direct child of the component's container.
 
 ## Nested `<style>` elements
 
@@ -1497,6 +1547,7 @@ Native form submissions use `FormData` — `await event.request.formData()`.
 Filesystem-based router. `src/routes` = root; `src/routes/about` → `/about`; `src/routes/blog/[slug]` → dynamic parameter route. (Configurable via project config.)
 
 Route files use a `+` prefix. Rules of thumb:
+
 - All files can run on the server.
 - All files run on the client except `+server` files.
 - `+layout` and `+error` apply to subdirectories too.
@@ -1513,8 +1564,8 @@ Defines a page; SSR on initial request, CSR on subsequent nav by default. Uses `
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
 </script>
-<h1>{data.title}</h1>
-<div>{@html data.content}</div>
+
+<h1>{data.title}</h1><div>{@html data.content}</div>
 ```
 
 > **Legacy:** Svelte 4 used `export let data`.
@@ -1550,12 +1601,13 @@ Custom error page per-route:
 <script>
 	import { page } from '$app/state';
 </script>
+
 <h1>{page.status}: {page.error.message}</h1>
 ```
 
 > **Legacy:** `$app/state` added in 2.12; earlier use `$app/stores`.
 
-SvelteKit walks up the tree for the closest `+error.svelte`; falls back to a static `src/error.html`. If the root layout's `load` errors, the closest boundary is *above* the root `+error`. 404s use `src/routes/+error.svelte`. `+error.svelte` is *not* used for errors inside `handle` or `+server.js` handlers.
+SvelteKit walks up the tree for the closest `+error.svelte`; falls back to a static `src/error.html`. If the root layout's `load` errors, the closest boundary is _above_ the root `+error`. 404s use `src/routes/+error.svelte`. `+error.svelte` is _not_ used for errors inside `handle` or `+server.js` handlers.
 
 ### `+layout`
 
@@ -1567,6 +1619,7 @@ Default layout:
 <script>
 	let { children } = $props();
 </script>
+
 {@render children()}
 ```
 
@@ -1750,14 +1803,16 @@ export function requireLogin() {
 ```js
 /// file: src/routes/login/+page.server.js
 export const actions = {
-	default: async (event) => { /* log the user in */ }
+	default: async (event) => {
+		/* log the user in */
+	}
 };
 ```
 
 ```svelte
 <form method="POST">
-	<label>Email <input name="email" type="email"></label>
-	<label>Password <input name="password" type="password"></label>
+	<label>Email <input name="email" type="email" /></label>
+	<label>Password <input name="password" type="password" /></label>
 	<button>Log in</button>
 </form>
 ```
@@ -1768,8 +1823,12 @@ Actions always use `POST` (GET should have no side effects). Invoke from other p
 
 ```js
 export const actions = {
-	login: async (event) => { /* ... */ },
-	register: async (event) => { /* ... */ }
+	login: async (event) => {
+		/* ... */
+	},
+	register: async (event) => {
+		/* ... */
+	}
 };
 ```
 
@@ -1789,7 +1848,7 @@ Work exactly like in `load` — `redirect(status, location)`.
 
 ### Loading data
 
-After an action runs (barring redirect/unexpected error), the page re-renders with the action's return as `form`, meaning `load` functions rerun afterward. `handle` runs *before* the action and does NOT rerun after — update `event.locals` manually inside the action if you set/delete cookies there.
+After an action runs (barring redirect/unexpected error), the page re-renders with the action's return as `form`, meaning `load` functions rerun afterward. `handle` runs _before_ the action and does NOT rerun after — update `event.locals` manually inside the action if you set/delete cookies there.
 
 ### Progressive enhancement
 
@@ -1936,10 +1995,11 @@ Servers are stateless conceptually but long-lived/shared in practice — never s
 	import { getContext } from 'svelte';
 	const user = getContext('user');
 </script>
+
 <p>Welcome {user().name}</p>
 ```
 
-During SSR, deeper-level context updates won't propagate up to already-rendered parents (unlike CSR, where they will) — pass state *down* to avoid hydration "flash". Without SSR, plain shared modules are fine.
+During SSR, deeper-level context updates won't propagate up to already-rendered parents (unlike CSR, where they will) — pass state _down_ to avoid hydration "flash". Without SSR, plain shared modules are fine.
 
 ### Component and page state is preserved
 
@@ -1955,7 +2015,7 @@ For disposable-but-nice-to-restore UI state (e.g. "is accordion open"), use Svel
 
 ## Remote functions
 
-*(Available since 2.27, experimental.)*
+_(Available since 2.27, experimental.)_
 
 Remote functions provide type-safe client↔server communication. Called anywhere in your app, but always run server-side — safe to access server-only modules (env vars, DB clients). Combined with Svelte's experimental `await`, lets you load/manipulate data directly in components.
 
@@ -1988,7 +2048,7 @@ export const getPosts = query(async () => {
 });
 ```
 
-> For *static* data, prefer `prerender` functions — queries can't be used when the whole page is prerendered (e.g. with `adapter-static`).
+> For _static_ data, prefer `prerender` functions — queries can't be used when the whole page is prerendered (e.g. with `adapter-static`).
 
 Returned query works like a `Promise`:
 
@@ -1996,6 +2056,7 @@ Returned query works like a `Promise`:
 <script>
 	import { getPosts } from './data.remote';
 </script>
+
 <ul>
 	{#each await getPosts() as { title, slug }}
 		<li><a href="/blog/{slug}">{title}</a></li>
@@ -2044,7 +2105,7 @@ import * as db from '$lib/server/database';
 
 export const getWeather = query.batch(v.string(), async (cityIds) => {
 	const weather = await db.sql`SELECT * FROM weather WHERE city_id = ANY(${cityIds})`;
-	const lookup = new Map(weather.map(w => [w.city_id, w]));
+	const lookup = new Map(weather.map((w) => [w.city_id, w]));
 	return (cityId) => lookup.get(cityId);
 });
 ```
@@ -2366,7 +2427,7 @@ export default defineAddon({
 });
 ```
 
-Two packages, clear boundary: **`sv`** = *where/when* (paths, workspace detection, dependency tracking, file I/O, orchestration); **`@sveltejs/sv-utils`** = *what* (parsers, language tooling, typed transforms — pure, no filesystem/workspace awareness). This makes transforms testable/composable independent of a workspace.
+Two packages, clear boundary: **`sv`** = _where/when_ (paths, workspace detection, dependency tracking, file I/O, orchestration); **`@sveltejs/sv-utils`** = _what_ (parsers, language tooling, typed transforms — pure, no filesystem/workspace awareness). This makes transforms testable/composable independent of a workspace.
 
 ### Development
 
@@ -2454,7 +2515,9 @@ const addon = defineAddon<{ theme: string }>()({
 	setup: ({ addOption }) => {
 		addOption('theme', { question: 'Which theme?', type: 'string', default: 'dark' });
 	},
-	run: ({ options }) => { options.theme; /* string */ }
+	run: ({ options }) => {
+		options.theme; /* string */
+	}
 });
 ```
 
@@ -2466,11 +2529,15 @@ Builder pattern, chained `.add()`, finalized `.build()`:
 import { defineAddonOptions } from 'sv';
 const options = defineAddonOptions()
 	.add('database', {
-		question: 'Which database?', type: 'select', default: 'postgresql',
+		question: 'Which database?',
+		type: 'select',
+		default: 'postgresql',
 		options: [{ value: 'postgresql' }, { value: 'mysql' }, { value: 'sqlite' }]
 	})
 	.add('docker', {
-		question: 'Add a docker-compose file?', type: 'boolean', default: false,
+		question: 'Add a docker-compose file?',
+		type: 'boolean',
+		default: false,
 		condition: (opts) => opts.database !== 'sqlite'
 	})
 	.build();
@@ -2556,7 +2623,9 @@ import { svelteConfig } from '@sveltejs/sv-utils';
 svelteConfig.edit({ sv, cwd }, ({ ast, property, override, js }) => {
 	js.array.append(property('extensions', { fallback: js.array.create() }), '.svx');
 	js.imports.addDefault(ast, { from: '@sveltejs/adapter-node', as: 'adapter' });
-	override({ adapter: js.functions.createCall({ name: 'adapter', args: [], useIdentifiers: true }) });
+	override({
+		adapter: js.functions.createCall({ name: 'adapter', args: [], useIdentifiers: true })
+	});
 });
 ```
 
@@ -2589,4 +2658,4 @@ if (packageManager === 'pnpm') {
 
 ---
 
-*End of compiled reference. Source: https://svelte.dev/docs (Svelte, SvelteKit, and CLI sections), retrieved 2026-08-11.*
+_End of compiled reference. Source: https://svelte.dev/docs (Svelte, SvelteKit, and CLI sections), retrieved 2026-08-11._
