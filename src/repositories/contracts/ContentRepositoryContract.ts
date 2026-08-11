@@ -1,19 +1,26 @@
 import type {
-  Chapter,
+  ContentEntry,
   Fiction,
+  FictionIndex,
   FictionSummary,
 } from '../../models/content'
 
 export interface ContentRepositoryContract {
   getFictionById(id: string): Fiction | null
   listFictions(): FictionSummary[]
-  getChapter(id: string): Chapter | null
-  listChaptersForFiction(fictionId: string): Chapter[]
+
+  getEntry(id: string): ContentEntry | null
+  listEntriesForFiction(fictionId: string): ContentEntry[]
+
+  getIndex(indexId: string): FictionIndex | null
+  listIndexesForFiction(fictionId: string): FictionIndex[]
+
   searchFTS(query: string): Array<{
     fictionId: string
-    chapterId: string
-    chapterNumber: number
-    chapterTitle: string
+    entryId: string
+    entryNumber: number | null
+    entryType: ContentEntry['type']
+    entryTitle: string
     fictionTitle: string
     snippet: string
   }>

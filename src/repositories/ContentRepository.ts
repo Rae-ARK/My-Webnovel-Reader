@@ -1,6 +1,7 @@
 import type {
-  Chapter,
+  ContentEntry,
   Fiction,
+  FictionIndex,
   FictionSummary,
 } from '../models/content'
 import { PublishedDatabase } from '../db/published/PublishedDatabase'
@@ -15,16 +16,31 @@ interface FictionRow {
   status: Fiction['status']
 }
 
-interface ChapterRow {
+interface ContentEntryRow {
   id: string
   fiction_id: string
-  number: number
+  type: ContentEntry['type']
+  number: number | null
   title: string
   content: string
 }
 
 interface FictionSummaryRow extends FictionRow {
-  chapter_count: number
+  entry_count: number
+}
+
+interface IndexRow {
+  id: string
+  fiction_id: string
+  title: string
+  position: number
+}
+
+interface IndexEntryRow {
+  index_id: string
+  entry_id: string
+  position: number
+  label: string | null
 }
 
 interface NameRow {
@@ -55,11 +71,7 @@ export class ContentRepository implements ContentRepositoryContract {
       [id],
     )
 
-    if (!row) {
-      return null
-    }
-
-    return this.mapFiction(row)
+    return row ? this.mapFiction(row) : null
   }
 
   listFictions(): FictionSummary[] {
@@ -72,7 +84,7 @@ export class ContentRepository implements ContentRepositoryContract {
           cover,
           synopsis,
           status,
-          chapter_count
+          entry_count
         FROM fiction_summary
         ORDER BY title COLLATE NOCASE ASC
       `,
@@ -80,57 +92,99 @@ export class ContentRepository implements ContentRepositoryContract {
 
     return rows.map((row) => ({
       ...this.mapFiction(row),
-      chapterCount: row.chapter_count,
+      entryCount: row.entry_count,
     }))
   }
 
-  getChapter(id: string): Chapter | null {
-    const row = this.database.get<ChapterRow>(
+  getEntry(id: string): ContentEntry | null {
+    const row = this.database.get<ContentEntryRow>(
       `
         SELECT
           id,
           fiction_id,
+          type,
           number,
           title,
           content
-        FROM chapters
+        FROM content_entries
         WHERE id = ?
         LIMIT 1
       `,
       [id],
     )
 
-    if (!row) {
-      return null
-    }
-
-    return this.mapChapter(row)
+    return row ? this.mapEntry(row) : null
   }
 
-  listChaptersForFiction(fictionId: string): Chapter[] {
-    const rows = this.database.query<ChapterRow>(
+  listEntriesForFiction(fictionId: string): ContentEntry[] {
+    const rows = this.database.query<ContentEntryRow>(
       `
         SELECT
           id,
           fiction_id,
+          type,
           number,
           title,
           content
-        FROM chapters
+        FROM content_entries
         WHERE fiction_id = ?
-        ORDER BY number ASC
+        ORDER BY
+          CASE WHEN number IS NULL THEN 1 ELSE 0 END,
+          number ASC,
+          rowid ASC
       `,
       [fictionId],
     )
 
-    return rows.map((row) => this.mapChapter(row))
+    return rows.map((row) => this.mapEntry(row))
+  }
+
+  getIndex(indexId: string): FictionIndex | null {
+    const index = this.database.get<IndexRow>(
+      `
+        SELECT
+          id,
+          fiction_id,
+          title,
+          position
+        FROM indexes
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [indexId],
+    )
+
+    if (!index) {
+      return null
+    }
+
+    return this.mapIndex(index)
+  }
+
+  listIndexesForFiction(fictionId: string): FictionIndex[] {
+    const indexes = this.database.query<IndexRow>(
+      `
+        SELECT
+          id,
+          fiction_id,
+          title,
+          position
+        FROM indexes
+        WHERE fiction_id = ?
+        ORDER BY position ASC
+      `,
+      [fictionId],
+    )
+
+    return indexes.map((index) => this.mapIndex(index))
   }
 
   searchFTS(query: string): Array<{
     fictionId: string
-    chapterId: string
-    chapterNumber: number
-    chapterTitle: string
+    entryId: string
+    entryNumber: number | null
+    entryType: ContentEntry['type']
+    entryTitle: string
     fictionTitle: string
     snippet: string
   }> {
@@ -142,39 +196,46 @@ export class ContentRepository implements ContentRepositoryContract {
 
     const rows = this.database.query<{
       fiction_id: string
-      chapter_id: string
-      chapter_number: number
-      chapter_title: string
+      entry_id: string
+      entry_number: number | null
+      entry_type: ContentEntry['type']
+      entry_title: string
       fiction_title: string
       snippet: string
     }>(
       `
         SELECT
-          chapters.fiction_id AS fiction_id,
-          chapters.id AS chapter_id,
-          chapters.number AS chapter_number,
-          chapters.title AS chapter_title,
+          content_entries.fiction_id AS fiction_id,
+          content_entries.id AS entry_id,
+          content_entries.number AS entry_number,
+          content_entries.type AS entry_type,
+          content_entries.title AS entry_title,
           fictions.title AS fiction_title,
-          substr(chapters.content, 1, 240) AS snippet
-        FROM chapters
+          substr(content_entries.content, 1, 240) AS snippet
+        FROM content_entries
         INNER JOIN fictions
-          ON fictions.id = chapters.fiction_id
-        WHERE chapters.content LIKE ?
-           OR chapters.title LIKE ?
+          ON fictions.id = content_entries.fiction_id
+        WHERE content_entries.content LIKE ?
+           OR content_entries.title LIKE ?
            OR fictions.title LIKE ?
         ORDER BY
           fictions.title COLLATE NOCASE ASC,
-          chapters.number ASC
+          content_entries.rowid ASC
         LIMIT 50
       `,
-      [`%${normalizedQuery}%`, `%${normalizedQuery}%`, `%${normalizedQuery}%`],
+      [
+        `%${normalizedQuery}%`,
+        `%${normalizedQuery}%`,
+        `%${normalizedQuery}%`,
+      ],
     )
 
     return rows.map((row) => ({
       fictionId: row.fiction_id,
-      chapterId: row.chapter_id,
-      chapterNumber: row.chapter_number,
-      chapterTitle: row.chapter_title,
+      entryId: row.entry_id,
+      entryNumber: row.entry_number,
+      entryType: row.entry_type,
+      entryTitle: row.entry_title,
       fictionTitle: row.fiction_title,
       snippet: row.snippet,
     }))
@@ -193,13 +254,60 @@ export class ContentRepository implements ContentRepositoryContract {
     }
   }
 
-  private mapChapter(row: ChapterRow): Chapter {
+  private mapEntry(row: ContentEntryRow): ContentEntry {
     return {
       id: row.id,
       fictionId: row.fiction_id,
+      type: row.type,
       number: row.number,
       title: row.title,
       content: row.content,
+    }
+  }
+
+  private mapIndex(index: IndexRow): FictionIndex {
+    const rows = this.database.query<IndexEntryRow>(
+      `
+        SELECT
+          index_entries.index_id,
+          index_entries.entry_id,
+          index_entries.position,
+          index_entries.label
+        FROM index_entries
+        WHERE index_entries.index_id = ?
+        ORDER BY index_entries.position ASC
+      `,
+      [index.id],
+    )
+
+    return {
+      id: index.id,
+      fictionId: index.fiction_id,
+      title: index.title,
+      position: index.position,
+      entries: rows
+        .map((row) => {
+          const entry = this.getEntry(row.entry_id)
+
+          if (!entry) {
+            return null
+          }
+
+          return {
+            entry,
+            position: row.position,
+            label: row.label,
+          }
+        })
+        .filter(
+          (
+            item,
+          ): item is {
+            entry: ContentEntry
+            position: number
+            label: string | null
+          } => item !== null,
+        ),
     }
   }
 
