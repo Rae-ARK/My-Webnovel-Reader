@@ -8,11 +8,12 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
   search: vi.fn(),
+  routeQuery: {} as Record<string, string | string[] | undefined>,
 }))
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({
-    query: {},
+    query: mocks.routeQuery,
   }),
   useRouter: () => ({
     push: mocks.push,
@@ -33,6 +34,7 @@ describe('SearchView', () => {
     mocks.push.mockReset()
     mocks.replace.mockReset()
     mocks.search.mockReset()
+    mocks.routeQuery = {}
 
     mocks.search.mockImplementation((query: string) => {
       if (query.toLowerCase().includes('tomorrow')) {
@@ -50,6 +52,16 @@ describe('SearchView', () => {
 
       return []
     })
+  })
+
+  it('loads an existing query from the URL', () => {
+    mocks.routeQuery = { q: 'tomorrow' }
+
+    const wrapper = mount(SearchView)
+
+    expect(wrapper.find('input').element.value).toBe('tomorrow')
+    expect(mocks.search).toHaveBeenCalledWith('tomorrow')
+    expect(wrapper.text()).toContain('The Moonlit Archive')
   })
 
   it('renders the search page', () => {
@@ -80,6 +92,27 @@ describe('SearchView', () => {
       path: '/search',
       query: { q: 'moon' },
     })
+  })
+
+  it('navigates to the matching chapter when a result is clicked', async () => {
+    const wrapper = mount(SearchView)
+
+    await wrapper.find('input').setValue('tomorrow')
+    await wrapper.find('form').trigger('submit')
+    await wrapper.find('li button').trigger('click')
+
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/read/fiction-1/chapter-3',
+    )
+  })
+
+  it('renders the no-results state', async () => {
+    const wrapper = mount(SearchView)
+
+    await wrapper.find('input').setValue('missing')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.text()).toContain('No results found.')
   })
 
   it('clears the search when submitted empty', async () => {
