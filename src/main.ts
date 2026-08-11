@@ -9,6 +9,7 @@ const router = createRouter({
   routes: [
     { path: '/', component: () => import('./views/HomeView.vue') },
     { path: '/library', component: () => import('./views/LibraryView.vue') },
+    { path: '/search', component: () => import('./views/SearchView.vue') },
     { path: '/fiction/:id', component: () => import('./views/FictionView.vue') },
     {
       path: '/read/:fictionId/:chapterId',
