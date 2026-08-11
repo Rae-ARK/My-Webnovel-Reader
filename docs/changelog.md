@@ -151,3 +151,45 @@ of step 9 (index UI), not this migration.
   migrated from a real `novel.config.json` + source document, which are
   gitignored and exist only on the author's local machine — this session
   had no access to them and stayed within the blank/template constraint.
+
+### Patch 4 — `index-assignment-fix.patch`
+
+**Files:** `scripts/import-novel.py`
+
+**Bug found while running step 7 locally:** the real source document
+declares all of its index headings ("Index of ARC 1/2/3") consecutively
+up front, each followed by a table-of-contents-style manifest of that
+arc's chapters, with the actual readable chapter sections only
+beginning after all three manifests. The importer's assignment logic
+("every entry belongs to whichever index heading was most recently
+seen in document order") assumed indexes and their entries were
+interleaved. Against the TOC-block layout this put every real entry
+under the last-declared index (`Index of ARC 3: 30 entries`, the other
+two empty).
+
+- `import-novel.py`: each index's own manifest lines are now scanned
+  for chapter numbers (via the existing `CHAPTER_PATTERN`), giving that
+  index a numeric range derived purely from what the author wrote in
+  its own listing (e.g. a manifest mentioning chapters 6-13 owns that
+  range) — nothing hardcoded to ARC, chapter counts, or this fiction.
+  Real entries are bucketed by matching their own chapter number
+  against these ranges; non-numbered entries (interludes, extras,
+  afterwords) join whichever index most recently claimed a numbered
+  chapter, so they land next to the chapter they follow in reading
+  order.
+  - Title text is intentionally *not* used for matching — the
+    manifest's chapter-1 line and the real chapter-1 heading turned out
+    to use different wording in the actual document, so number-based
+    matching was necessary anyway.
+  - If an index's manifest has no discoverable numbers at all (or a
+    document has no manifests, i.e. the original interleaved layout),
+    that index gets no numeric range and entry assignment falls back
+    to the original declaration-order grouping, so both document
+    layouts are handled by one generic pass.
+- Verified against two synthetic documents built for this fix (not
+  committed, sandbox-only): one matching the real TOC-block layout,
+  one matching the old interleaved layout. Both produced correct
+  index groupings, including correct placement of non-numbered entries
+  adjacent to their preceding numbered chapter.
+- Not yet verified against the real document/database — that's step 7,
+  to be re-run locally.

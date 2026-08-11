@@ -1,8 +1,8 @@
 {
-  "fiction_id": "fiction-summoned-by-mistake",
-  "title": "Summoned by Mistake, I Decided to Learn How to Live",
-  "author": "Rae ARK",
+  "fiction_id": "fiction-your-slug",
+  "title": "Your Fiction Title",
+  "author": "Author Name",
   "status": "ongoing",
-  "cover": "/content/covers/summoned-by-mistake.png",
-  "docx": "docs/Summoned by Mistake Deployment 1.docx"
+  "cover": "/content/covers/your-slug.png",
+  "docx": "docs/Your Manuscript.docx"
 }

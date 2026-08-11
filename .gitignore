@@ -43,5 +43,8 @@ scripts/novel.config.json
 .venv/
 venv/
 
+scripts/novel.config.json
+scripts/import-novel.py
+
 # Node dependencies
 node_modules/
