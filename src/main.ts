@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import './styles.css'
@@ -13,7 +14,11 @@ const router = createRouter({
       path: '/read/:fictionId/:chapterId',
       component: () => import('./views/ReaderView.vue'),
     },
+    {
+      path: '/dev/theme-preview',
+      component: () => import('./views/dev/ThemePreviewView.vue'),
+    },
   ],
 })
 
-createApp(App).use(router).mount('#app')
+createApp(App).use(createPinia()).use(router).mount('#app')
