@@ -4,5 +4,6 @@
   "author": "Author Name",
   "status": "ongoing",
   "cover": "/content/covers/your-slug.png",
-  "docx": "docs/Your Manuscript.docx"
+  "docx": "docs/Your Manuscript.docx",
+  "synopsis": "A short blurb describing the fiction. Use \n\n between paragraphs for line breaks; this is inserted verbatim into the published database's fictions.synopsis column."
 }

@@ -2,6 +2,7 @@ from pathlib import Path
 from html import escape
 import json
 import re
+import shutil
 import sqlite3
 import sys
 
@@ -20,6 +21,7 @@ REQUIRED_CONFIG_KEYS = (
     "status",
     "cover",
     "docx",
+    "synopsis",
 )
 
 
@@ -47,7 +49,7 @@ def load_config(path):
 
 
 config_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_CONFIG_PATH
-config = load_config(Path("/media/raj-kumar/fast partition/my-svelte-project/scripts/novel.config.json"))
+config = load_config(config_path)
 
 FICTION_ID = config["fiction_id"]
 TITLE = config["title"]
@@ -55,6 +57,7 @@ AUTHOR = config["author"]
 STATUS = config["status"]
 COVER = config["cover"]
 DOCX = ROOT / config["docx"]
+SYNOPSIS = config["synopsis"]
 
 INDEX_PATTERN = re.compile(r"^\s*index\b", re.IGNORECASE)
 CHAPTER_PATTERN = re.compile(r"^\s*chapter\s+(\d+)\b", re.IGNORECASE)
@@ -322,6 +325,12 @@ if not entries:
 
 
 
+if DB.exists():
+    backup_path = DB.with_name(DB.name + ".bak")
+    shutil.copy2(DB, backup_path)
+    print(f"Existing database found — backed up to {backup_path}")
+
+
 with sqlite3.connect(DB) as conn:
     conn.execute("PRAGMA foreign_keys = ON")
 
@@ -430,7 +439,7 @@ with sqlite3.connect(DB) as conn:
             TITLE,
             AUTHOR,
             COVER,
-            TITLE,
+            SYNOPSIS,
             STATUS,
         ),
     )

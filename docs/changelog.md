@@ -193,3 +193,40 @@ two empty).
   adjacent to their preceding numbered chapter.
 - Not yet verified against the real document/database — that's step 7,
   to be re-run locally.
+
+### Patch 5 — `importer-config-and-safety-fixes.patch`
+
+**Files:** `scripts/import-novel.py`, `scripts/novel.config.example.json`
+
+Three fixes bundled together, found while preparing to re-run step 7:
+
+1. **Regression: hardcoded local path ignored `config_path`.** A prior
+   local edit replaced `config = load_config(config_path)` with a
+   literal absolute path
+   (`/media/raj-kumar/fast partition/my-svelte-project/scripts/novel.config.json`)
+   and got committed. This silently discarded the `config_path`
+   variable (and therefore any CLI-arg override) and hardcoded a
+   machine-specific path into the tracked template. Reverted to
+   `load_config(config_path)`.
+2. **Bug: `synopsis` was never read from config.** The `fictions`
+   INSERT used `TITLE` for both the `title` and `synopsis` columns, so
+   every imported fiction's synopsis was just its own title repeated.
+   Added `"synopsis"` to `REQUIRED_CONFIG_KEYS` (fails fast with a
+   clear error if a config omits it), added
+   `SYNOPSIS = config["synopsis"]`, and fixed the INSERT to use
+   `SYNOPSIS`. `novel.config.example.json` gained a matching `synopsis`
+   placeholder field with a note that `\n\n` produces paragraph breaks
+   in the stored value. Real synopsis text stays in the gitignored
+   `scripts/novel.config.json`, same as every other fiction-specific
+   field.
+3. **Safety net: no backup before overwrite.** Every run drops and
+   recreates the content tables unconditionally. If `library.sqlite`
+   already exists when the script runs, it's now copied to
+   `library.sqlite.bak` (overwriting any previous backup) before the
+   schema drop/rewrite touches it, so a bad run or bad source document
+   never silently destroys the last known-good database.
+
+**Verification:**
+- `python3 -m py_compile scripts/import-novel.py` — no syntax errors
+- Not yet run against the real document/database — folded into the
+  step 7 re-run.
