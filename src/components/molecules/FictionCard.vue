@@ -29,7 +29,7 @@ defineProps<{
       <div class="fiction-card__body">
         <div class="fiction-card__meta">
           <span>{{ fiction.status }}</span>
-          <span>{{ fiction.chapterCount }} chapters</span>
+          <span>{{ fiction.entryCount }} entries</span>
         </div>
 
         <h2>{{ fiction.title }}</h2>

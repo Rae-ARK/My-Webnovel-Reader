@@ -1,17 +1,17 @@
-import type { Chapter } from '../models/content'
+import type { ContentEntry } from '../models/content'
 import type { ContentRepositoryContract } from '../repositories/contracts/ContentRepositoryContract'
 import type { UserStateRepositoryContract } from '../repositories/contracts/UserStateRepositoryContract'
 import type { ReadingProgress } from '../models/user-state'
 
-export interface ChapterNavigation {
-  previous: Chapter | null
-  next: Chapter | null
+export interface EntryNavigation {
+  previous: ContentEntry | null
+  next: ContentEntry | null
 }
 
-export interface ReaderChapter {
-  chapter: Chapter
-  previous: Chapter | null
-  next: Chapter | null
+export interface ReaderEntry {
+  entry: ContentEntry
+  previous: ContentEntry | null
+  next: ContentEntry | null
 }
 
 export class ReaderService {
@@ -22,39 +22,46 @@ export class ReaderService {
     private readonly userStateRepository: UserStateRepositoryContract,
   ) {}
 
-  getChapter(
+  getEntry(
     fictionId: string,
-    chapterId: string,
-  ): ReaderChapter | null {
-    const chapter = this.contentRepository.getChapter(chapterId)
+    entryId: string,
+  ): ReaderEntry | null {
+    const entry = this.contentRepository.getEntry(entryId)
 
-    if (!chapter || chapter.fictionId !== fictionId) {
+    if (!entry || entry.fictionId !== fictionId) {
       return null
     }
 
-    const chapters =
-      this.contentRepository.listChaptersForFiction(fictionId)
+    // Navigation runs over the fiction's actual readable-entry sequence
+    // (chapters, interludes, extras, afterwords, ...), not a numbered
+    // chapter list, so any entry type can be reached from any other.
+    const entries =
+      this.contentRepository.listEntriesForFiction(fictionId)
 
-    const chapterIndex = chapters.findIndex(
-      (item) => item.id === chapter.id,
+    const entryIndex = entries.findIndex(
+      (item) => item.id === entry.id,
     )
 
-    if (chapterIndex === -1) {
+    if (entryIndex === -1) {
       return null
     }
 
     return {
-      chapter,
-      previous: chapters[chapterIndex - 1] ?? null,
-      next: chapters[chapterIndex + 1] ?? null,
+      entry,
+      previous: entries[entryIndex - 1] ?? null,
+      next: entries[entryIndex + 1] ?? null,
     }
+  }
+
+  getEntryTitle(entryId: string): string | null {
+    return this.contentRepository.getEntry(entryId)?.title ?? null
   }
 
   getNavigation(
     fictionId: string,
-    chapterId: string,
-  ): ChapterNavigation | null {
-    const result = this.getChapter(fictionId, chapterId)
+    entryId: string,
+  ): EntryNavigation | null {
+    const result = this.getEntry(fictionId, entryId)
 
     if (!result) {
       return null
@@ -104,12 +111,12 @@ export class ReaderService {
 
   async recordHistory(
     fictionId: string,
-    chapterId: string,
+    entryId: string,
   ): Promise<void> {
     await this.userStateRepository.addHistoryEntry({
       id: crypto.randomUUID(),
       fictionId,
-      chapterId,
+      chapterId: entryId,
       visitedAt: Date.now(),
     })
   }

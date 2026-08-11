@@ -41,9 +41,10 @@ describe('SearchView', () => {
         return [
           {
             fictionId: 'fiction-1',
-            chapterId: 'chapter-3',
-            chapterNumber: 3,
-            chapterTitle: 'Tomorrow',
+            entryId: 'entry-3',
+            entryNumber: 3,
+            entryType: 'chapter',
+            entryTitle: 'Tomorrow',
             fictionTitle: 'The Moonlit Archive',
             snippet: "A book with tomorrow's date.",
           },
@@ -94,7 +95,7 @@ describe('SearchView', () => {
     })
   })
 
-  it('navigates to the matching chapter when a result is clicked', async () => {
+  it('navigates to the matching entry when a result is clicked', async () => {
     const wrapper = mount(SearchView)
 
     await wrapper.find('input').setValue('tomorrow')
@@ -102,7 +103,7 @@ describe('SearchView', () => {
     await wrapper.find('li button').trigger('click')
 
     expect(mocks.push).toHaveBeenCalledWith(
-      '/read/fiction-1/chapter-3',
+      '/read/fiction-1/entry-3',
     )
   })
 

@@ -55,6 +55,29 @@ const readingWidthOptions = {
 
 const themeOptions: Theme[] = ['light', 'cream', 'dark']
 
+const entryEyebrow = computed(() => {
+  const entry = reader.current?.entry
+
+  if (!entry) {
+    return ''
+  }
+
+  const label =
+    entry.type.charAt(0).toUpperCase() + entry.type.slice(1)
+
+  return entry.number !== null
+    ? `${label} ${entry.number}`
+    : label
+})
+
+const bookmarkLabel = (bookmark: Bookmark) => {
+  if (bookmark.chapterId === chapterId.value) {
+    return entryEyebrow.value
+  }
+
+  return reader.getEntryTitle(bookmark.chapterId) ?? 'Bookmark'
+}
+
 let scrollListenerAttached = false
 
 const getReadingPosition = (): number => {
@@ -80,7 +103,7 @@ const saveCurrentPosition = () => {
 
   reader.saveProgressDebounced({
     fictionId: fictionId.value,
-    chapterId: reader.current.chapter.id,
+    chapterId: reader.current.entry.id,
     position: getReadingPosition(),
     updatedAt: Date.now(),
   })
@@ -93,7 +116,7 @@ const flushCurrentPosition = async () => {
 
   await reader.saveProgress({
     fictionId: fictionId.value,
-    chapterId: reader.current.chapter.id,
+    chapterId: reader.current.entry.id,
     position: getReadingPosition(),
     updatedAt: Date.now(),
   })
@@ -134,7 +157,7 @@ const recordCurrentHistory = async () => {
 
   await reader.recordHistory(
     fictionId.value,
-    reader.current.chapter.id,
+    reader.current.entry.id,
   )
 }
 
@@ -191,7 +214,7 @@ const addBookmark = async () => {
   try {
     await reader.addBookmark({
       fictionId: fictionId.value,
-      chapterId: reader.current.chapter.id,
+      chapterId: reader.current.entry.id,
       position: getReadingPosition(),
     })
 
@@ -242,12 +265,12 @@ const goToBookmark = async (bookmark: Bookmark) => {
 const load = async () => {
   await loadSettings()
 
-  const chapter = await reader.loadChapter(
+  const entry = await reader.loadEntry(
     fictionId.value,
     chapterId.value,
   )
 
-  if (!chapter) {
+  if (!entry) {
     return
   }
 
@@ -256,17 +279,17 @@ const load = async () => {
   await restoreReadingPosition()
 }
 
-const goToChapter = async (
-  nextChapterId: string | null | undefined,
+const goToEntry = async (
+  nextEntryId: string | null | undefined,
 ) => {
-  if (!nextChapterId) {
+  if (!nextEntryId) {
     return
   }
 
   await flushCurrentPosition()
 
   await router.push(
-    `/read/${fictionId.value}/${nextChapterId}`,
+    `/read/${fictionId.value}/${nextEntryId}`,
   )
 
   await load()
@@ -338,7 +361,7 @@ onBeforeUnmount(() => {
       class="reader-state"
       aria-busy="true"
     >
-      <p>Loading chapter...</p>
+      <p>Loading...</p>
     </div>
 
     <div
@@ -346,7 +369,7 @@ onBeforeUnmount(() => {
       class="reader-state"
       role="alert"
     >
-      <h1>Chapter unavailable</h1>
+      <h1>Content unavailable</h1>
       <p>{{ reader.error }}</p>
 
       <RouterLink
@@ -459,10 +482,10 @@ onBeforeUnmount(() => {
         </section>
 
         <p class="eyebrow">
-          Chapter {{ reader.current.chapter.number }}
+          {{ entryEyebrow }}
         </p>
 
-        <h1>{{ reader.current.chapter.title }}</h1>
+        <h1>{{ reader.current.entry.title }}</h1>
       </header>
 
       <section
@@ -496,9 +519,7 @@ onBeforeUnmount(() => {
               @click="goToBookmark(bookmark)"
             >
               <span>
-                Chapter {{ bookmark.chapterId === chapterId
-                  ? reader.current.chapter.number
-                  : bookmark.chapterId }}
+                {{ bookmarkLabel(bookmark) }}
               </span>
 
               <small>
@@ -526,19 +547,19 @@ onBeforeUnmount(() => {
 
       <div
         class="reader__content"
-        v-html="reader.current.chapter.content"
+        v-html="reader.current.entry.content"
       />
 
       <nav
         class="reader__navigation"
-        aria-label="Chapter navigation"
+        aria-label="Entry navigation"
       >
         <button
           type="button"
           class="secondary-button"
           :disabled="!reader.current.previous?.id"
           @click="
-            goToChapter(reader.current.previous?.id)
+            goToEntry(reader.current.previous?.id)
           "
         >
           ← Previous
@@ -549,7 +570,7 @@ onBeforeUnmount(() => {
           class="button"
           :disabled="!reader.current.next?.id"
           @click="
-            goToChapter(reader.current.next?.id)
+            goToEntry(reader.current.next?.id)
           "
         >
           Next →

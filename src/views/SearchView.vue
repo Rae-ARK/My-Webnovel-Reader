@@ -45,9 +45,26 @@ function search() {
 
 function openResult(
   fictionId: string,
-  chapterId: string,
+  entryId: string,
 ) {
-  router.push(`/read/${fictionId}/${chapterId}`)
+  router.push(`/read/${fictionId}/${entryId}`)
+}
+
+function entryLabel(result: {
+  entryType: string
+  entryNumber: number | null
+  entryTitle: string
+}) {
+  const type =
+    result.entryType.charAt(0).toUpperCase() +
+    result.entryType.slice(1)
+
+  const prefix =
+    result.entryNumber !== null
+      ? `${type} ${result.entryNumber}`
+      : type
+
+  return `${prefix}: ${result.entryTitle}`
 }
 </script>
 
@@ -87,17 +104,14 @@ function openResult(
       <ul>
         <li
           v-for="result in results"
-          :key="result.chapterId"
+          :key="result.entryId"
         >
           <button
             type="button"
-            @click="openResult(result.fictionId, result.chapterId)"
+            @click="openResult(result.fictionId, result.entryId)"
           >
             <strong>{{ result.fictionTitle }}</strong>
-            <span>
-              Chapter {{ result.chapterNumber }}:
-              {{ result.chapterTitle }}
-            </span>
+            <span>{{ entryLabel(result) }}</span>
             <span>{{ result.snippet }}</span>
           </button>
         </li>

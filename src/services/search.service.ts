@@ -1,10 +1,12 @@
+import type { ContentEntry } from '../models/content'
 import type { ContentRepositoryContract } from '../repositories/contracts/ContentRepositoryContract'
 
 export interface SearchResult {
   fictionId: string
-  chapterId: string
-  chapterNumber: number
-  chapterTitle: string
+  entryId: string
+  entryNumber: number | null
+  entryType: ContentEntry['type']
+  entryTitle: string
   fictionTitle: string
   snippet: string
 }
@@ -34,11 +36,11 @@ export class SearchService {
 
         const aTitleMatch =
           a.fictionTitle.toLocaleLowerCase() === queryLower ||
-          a.chapterTitle.toLocaleLowerCase() === queryLower
+          a.entryTitle.toLocaleLowerCase() === queryLower
 
         const bTitleMatch =
           b.fictionTitle.toLocaleLowerCase() === queryLower ||
-          b.chapterTitle.toLocaleLowerCase() === queryLower
+          b.entryTitle.toLocaleLowerCase() === queryLower
 
         if (aTitleMatch !== bTitleMatch) {
           return aTitleMatch ? -1 : 1
@@ -50,7 +52,11 @@ export class SearchService {
             undefined,
             { sensitivity: 'base' },
           ) ||
-          a.chapterNumber - b.chapterNumber
+          // Not every entry is a numbered chapter (interludes, extras,
+          // and afterwords may have no number), so entries without one
+          // sort after numbered ones within the same fiction.
+          (a.entryNumber ?? Number.MAX_SAFE_INTEGER) -
+            (b.entryNumber ?? Number.MAX_SAFE_INTEGER)
         )
       })
   }

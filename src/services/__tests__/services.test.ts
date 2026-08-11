@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import type {
-  Chapter,
+  ContentEntry,
   Fiction,
+  FictionIndex,
   FictionSummary,
 } from '../../models/content'
 import type {
@@ -36,24 +37,27 @@ const fiction: Fiction = {
   tags: ['Magic'],
 }
 
-const chapters: Chapter[] = [
+const entries: ContentEntry[] = [
   {
-    id: 'chapter-1',
+    id: 'entry-1',
     fictionId: 'fiction-1',
+    type: 'chapter',
     number: 1,
     title: 'A Beginning',
     content: 'Chapter one content.',
   },
   {
-    id: 'chapter-2',
+    id: 'entry-2',
     fictionId: 'fiction-1',
+    type: 'chapter',
     number: 2,
     title: 'A Door',
     content: 'Chapter two content.',
   },
   {
-    id: 'chapter-3',
+    id: 'entry-3',
     fictionId: 'fiction-1',
+    type: 'chapter',
     number: 3,
     title: 'Tomorrow',
     content: 'Chapter three content.',
@@ -62,7 +66,19 @@ const chapters: Chapter[] = [
 
 const fictionSummary: FictionSummary = {
   ...fiction,
-  chapterCount: chapters.length,
+  entryCount: entries.length,
+}
+
+const index: FictionIndex = {
+  id: 'index-1',
+  fictionId: 'fiction-1',
+  title: 'Index',
+  position: 0,
+  entries: entries.map((entry, position) => ({
+    entry,
+    position,
+    label: null,
+  })),
 }
 
 class FakeContentRepository implements ContentRepositoryContract {
@@ -74,14 +90,22 @@ class FakeContentRepository implements ContentRepositoryContract {
     return [fictionSummary]
   }
 
-  getChapter(id: string): Chapter | null {
-    return chapters.find((chapter) => chapter.id === id) ?? null
+  getEntry(id: string): ContentEntry | null {
+    return entries.find((entry) => entry.id === id) ?? null
   }
 
-  listChaptersForFiction(fictionId: string): Chapter[] {
-    return chapters.filter(
-      (chapter) => chapter.fictionId === fictionId,
+  listEntriesForFiction(fictionId: string): ContentEntry[] {
+    return entries.filter(
+      (entry) => entry.fictionId === fictionId,
     )
+  }
+
+  getIndex(indexId: string): FictionIndex | null {
+    return indexId === index.id ? index : null
+  }
+
+  listIndexesForFiction(fictionId: string): FictionIndex[] {
+    return fictionId === index.fictionId ? [index] : []
   }
 
   searchFTS(query: string) {
@@ -89,9 +113,10 @@ class FakeContentRepository implements ContentRepositoryContract {
       return [
         {
           fictionId: 'fiction-1',
-          chapterId: 'chapter-3',
-          chapterNumber: 3,
-          chapterTitle: 'Tomorrow',
+          entryId: 'entry-3',
+          entryNumber: 3,
+          entryType: 'chapter' as const,
+          entryTitle: 'Tomorrow',
           fictionTitle: 'The Moonlit Archive',
           snippet: '  A book with tomorrow\'s date.  ',
         },
@@ -239,33 +264,33 @@ describe('LibraryService', () => {
     const result = await service.getFictionById('fiction-1')
 
     expect(result?.isFavorite).toBe(true)
-    expect(result?.chapterCount).toBe(3)
+    expect(result?.entryCount).toBe(3)
   })
 })
 
 describe('ReaderService', () => {
-  it('uses stable chapter IDs for previous and next navigation', () => {
+  it('uses stable entry IDs for previous and next navigation', () => {
     const content = new FakeContentRepository()
     const userState = new FakeUserStateRepository()
     const service = new ReaderService(content, userState)
 
-    const result = service.getChapter(
+    const result = service.getEntry(
       'fiction-1',
-      'chapter-2',
+      'entry-2',
     )
 
-    expect(result?.chapter.id).toBe('chapter-2')
-    expect(result?.previous?.id).toBe('chapter-1')
-    expect(result?.next?.id).toBe('chapter-3')
+    expect(result?.entry.id).toBe('entry-2')
+    expect(result?.previous?.id).toBe('entry-1')
+    expect(result?.next?.id).toBe('entry-3')
   })
 
-  it('rejects a chapter belonging to another fiction', () => {
+  it('rejects an entry belonging to another fiction', () => {
     const content = new FakeContentRepository()
     const userState = new FakeUserStateRepository()
     const service = new ReaderService(content, userState)
 
     expect(
-      service.getChapter('another-fiction', 'chapter-2'),
+      service.getEntry('another-fiction', 'entry-2'),
     ).toBeNull()
   })
 
@@ -276,14 +301,14 @@ describe('ReaderService', () => {
 
     await service.saveProgress({
       fictionId: 'fiction-1',
-      chapterId: 'chapter-2',
+      chapterId: 'entry-2',
       position: 420,
       updatedAt: 0,
     })
 
     const progress = await service.getProgress('fiction-1')
 
-    expect(progress?.chapterId).toBe('chapter-2')
+    expect(progress?.chapterId).toBe('entry-2')
     expect(progress?.position).toBe(420)
     expect(progress?.updatedAt).toBeGreaterThan(0)
   })
@@ -297,7 +322,7 @@ describe('SearchService', () => {
     const results = service.search('  tomorrow  ')
 
     expect(results).toHaveLength(1)
-    expect(results[0].chapterId).toBe('chapter-3')
+    expect(results[0].entryId).toBe('entry-3')
     expect(results[0].snippet).toBe(
       "A book with tomorrow's date.",
     )

@@ -40,7 +40,7 @@ export class LibraryService {
 
     return {
       ...fiction,
-      chapterCount: this.getChapterCount(fictionId),
+      entryCount: this.getEntryCount(fictionId),
       isFavorite:
         await this.userStateRepository.isFavorite(fictionId),
     }
@@ -69,7 +69,7 @@ export class LibraryService {
         return {
           fiction: {
             ...fiction,
-            chapterCount: this.getChapterCount(fiction.id),
+            entryCount: this.getEntryCount(fiction.id),
           },
           chapterId: entry.chapterId,
           position: entry.position,
@@ -134,8 +134,8 @@ export class LibraryService {
     }))
   }
 
-  private getChapterCount(fictionId: string): number {
-    return this.contentRepository.listChaptersForFiction(
+  private getEntryCount(fictionId: string): number {
+    return this.contentRepository.listEntriesForFiction(
       fictionId,
     ).length
   }

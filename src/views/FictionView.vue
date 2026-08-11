@@ -91,7 +91,7 @@ onMounted(async () => {
 
         <div class="fiction-detail__meta">
           <span>{{ fiction.status }}</span>
-          <span>{{ fiction.chapterCount }} chapters</span>
+          <span>{{ fiction.entryCount }} entries</span>
         </div>
 
         <p class="fiction-detail__synopsis">
@@ -109,7 +109,7 @@ onMounted(async () => {
 
         <div class="fiction-detail__actions">
           <RouterLink
-            v-if="fiction.chapterCount"
+            v-if="fiction.entryCount"
             class="button"
             :to="`/read/${fiction.id}/1`"
           >

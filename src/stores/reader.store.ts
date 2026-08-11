@@ -4,48 +4,52 @@ import type {
   Bookmark,
   ReadingProgress,
 } from "../models/user-state";
-import type { ReaderChapter } from "../services/reader.service";
+import type { ReaderEntry } from "../services/reader.service";
 import { appContainer } from "../container";
 
 export const useReaderStore = defineStore("reader", () => {
   const container = appContainer;
 
-  const current = ref<ReaderChapter | null>(null);
+  const current = ref<ReaderEntry | null>(null);
   const progress = ref<ReadingProgress | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  async function loadChapter(fictionId: string, chapterId: string) {
+  async function loadEntry(fictionId: string, entryId: string) {
     loading.value = true;
     error.value = null;
 
     try {
-      const chapter = container.readerService.getChapter(
+      const entry = container.readerService.getEntry(
         fictionId,
-        chapterId,
+        entryId,
       );
 
-      if (!chapter) {
+      if (!entry) {
         current.value = null;
-        error.value = "Chapter not found.";
+        error.value = "Entry not found.";
         return null;
       }
 
-      current.value = chapter;
+      current.value = entry;
       progress.value =
         await container.readerService.getProgress(fictionId);
 
-      return chapter;
+      return entry;
     } catch (cause) {
       error.value =
         cause instanceof Error
           ? cause.message
-          : "Failed to load chapter.";
+          : "Failed to load entry.";
 
       return null;
     } finally {
       loading.value = false;
     }
+  }
+
+  function getEntryTitle(entryId: string): string | null {
+    return container.readerService.getEntryTitle(entryId);
   }
 
   async function loadProgress(fictionId: string) {
@@ -116,7 +120,8 @@ export const useReaderStore = defineStore("reader", () => {
     progress,
     loading,
     error,
-    loadChapter,
+    loadEntry,
+    getEntryTitle,
     loadProgress,
     saveProgress,
     saveProgressDebounced,
