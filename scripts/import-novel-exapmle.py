@@ -136,10 +136,16 @@ for position, start in enumerate(heading_indexes):
 
     title = doc.paragraphs[start].text.strip()
     content = []
+    raw_lines = []
 
     for paragraph in doc.paragraphs[start + 1:end]:
         if paragraph.style.name == "Heading 2":
             continue
+
+        text = paragraph.text.strip()
+
+        if text:
+            raw_lines.append(text)
 
         html = paragraph_to_html(paragraph)
 
@@ -149,42 +155,117 @@ for position, start in enumerate(heading_indexes):
     sections.append({
         "title": title,
         "content": "\n".join(content),
+        "raw_lines": raw_lines,
+        "is_index_heading": bool(INDEX_PATTERN.match(title)),
     })
 
 
 DEFAULT_INDEX_TITLE = "Index"
 
-# Indexes and their entries are derived entirely from the document's own
-# structure. A section whose title matches INDEX_PATTERN (e.g. "Index of
-# ARC 1", "Part One", "Volume I", "Book 2", ...) declares a new index using
-# whatever title the author wrote. Every readable entry that follows belongs
-# to the most recently declared index. If the document never declares an
-# index heading before its first entry, a single default index titled
-# "Index" is created to hold it. Nothing here is specific to any one
+# Indexes are derived entirely from the document's own structure. A
+# section whose title matches INDEX_PATTERN (e.g. "Index of ARC 1",
+# "Part One", "Volume I", "Book 2", ...) declares a new index using
+# whatever title the author wrote. Nothing here is specific to any one
 # fiction's naming scheme, chapter count, or numbering.
+#
+# Two document layouts are supported, both driven purely by content the
+# author already wrote -- never by fiction-specific code:
+#
+#   1. Interleaved: each index heading is immediately followed by the
+#      entries that belong to it, then the next index heading. Entries
+#      are simply grouped under whichever index heading most recently
+#      appeared in document order.
+#
+#   2. Table-of-contents block: every index heading (with a manifest of
+#      chapter numbers under it) appears up front, and the real,
+#      readable entries all follow afterward. Grouping entries by
+#      "most recently declared heading" would put everything under the
+#      last index in this layout, so instead each index's own manifest
+#      is scanned for chapter numbers, giving it a numeric range (e.g.
+#      an index whose manifest mentions chapters 6-13 owns numbers
+#      6 through 13). Real entries are then bucketed by matching their
+#      own chapter number against these ranges. Entries with no number
+#      (interludes, extras, afterwords) join whichever index most
+#      recently claimed a numbered chapter, so they land next to the
+#      chapter they follow in the reading order.
+#
+# A fiction whose index headings carry no discoverable numbers at all
+# (no manifest, or non-numeric organization) automatically falls back
+# to the interleaved behaviour, so both layouts are handled by the same
+# generic pass.
 
 indexes = []
 entries = []
 
-current_index = None
-entry_number = 0
 
-
-def start_new_index(title):
+def start_new_index(title, max_chapter_number):
     index = {
         "title": title,
         "position": len(indexes),
         "entries": [],
+        "max_chapter_number": max_chapter_number,
+        "range_start": None,
+        "range_end": None,
     }
     indexes.append(index)
     return index
 
 
+# First pass: declare every index in document order, and, if its own
+# listing mentions chapter numbers, record the highest one as that
+# index's manifest ceiling.
+for section in sections:
+    if not section["is_index_heading"]:
+        continue
+
+    mentioned_numbers = [
+        int(match.group(1))
+        for line in section["raw_lines"]
+        for match in [CHAPTER_PATTERN.match(line)]
+        if match
+    ]
+
+    max_chapter_number = max(mentioned_numbers) if mentioned_numbers else None
+
+    start_new_index(section["title"], max_chapter_number)
+
+# Turn each index's ceiling into a contiguous numeric range. An index
+# with no ceiling (no numbers found in its own listing) gets no range
+# and is skipped entirely by number-based lookup below.
+previous_ceiling = 0
+
+for index in indexes:
+    if index["max_chapter_number"] is None:
+        continue
+
+    index["range_start"] = previous_ceiling + 1
+    index["range_end"] = index["max_chapter_number"]
+    previous_ceiling = index["max_chapter_number"]
+
+
+def index_for_chapter_number(number):
+    for index in indexes:
+        if index["range_start"] is None:
+            continue
+
+        if index["range_start"] <= number <= index["range_end"]:
+            return index
+
+    return None
+
+
+# Second pass: walk the document again in order, building readable
+# entries and bucketing each one into an index.
+index_iterator = iter(indexes)
+current_declared_index = None
+last_numbered_bucket = None
+entry_number = 0
+
 for section in sections:
     title = section["title"]
 
-    if INDEX_PATTERN.match(title):
-        current_index = start_new_index(title)
+    if section["is_index_heading"]:
+        current_declared_index = next(index_iterator)
         continue
 
     entry_number += 1
@@ -210,13 +291,30 @@ for section in sections:
 
     entries.append(entry)
 
-    if current_index is None:
-        # No explicit index heading has appeared yet in the document.
+    bucket = None
+
+    if chapter_number is not None:
+        bucket = index_for_chapter_number(chapter_number)
+
+        if bucket is not None:
+            last_numbered_bucket = bucket
+
+    if bucket is None:
+        # No numeric range claimed this entry (either it has no number,
+        # or no index declared a manifest range at all) -- fall back to
+        # whichever index most recently owned a numbered chapter, then
+        # to whichever index heading was most recently declared in
+        # document order (the interleaved-layout behaviour).
+        bucket = last_numbered_bucket or current_declared_index
+
+    if bucket is None:
+        # No index heading has appeared yet in the document at all.
         # Every fiction still gets an index; entries encountered before
         # any explicit heading fall under this default one.
-        current_index = start_new_index(DEFAULT_INDEX_TITLE)
+        bucket = start_new_index(DEFAULT_INDEX_TITLE, None)
+        current_declared_index = bucket
 
-    current_index["entries"].append(entry)
+    bucket["entries"].append(entry)
 
 
 if not entries:
