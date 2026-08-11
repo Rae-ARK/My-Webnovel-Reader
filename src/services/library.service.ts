@@ -1,5 +1,6 @@
 import type {
   Fiction,
+  FictionIndex,
   FictionSummary,
 } from '../models/content'
 import type { ContentRepositoryContract } from '../repositories/contracts/ContentRepositoryContract'
@@ -44,6 +45,17 @@ export class LibraryService {
       isFavorite:
         await this.userStateRepository.isFavorite(fictionId),
     }
+  }
+
+  getIndexesForFiction(fictionId: string): FictionIndex[] {
+    return this.contentRepository.listIndexesForFiction(fictionId)
+  }
+
+  getFirstEntryId(fictionId: string): string | null {
+    const entries =
+      this.contentRepository.listEntriesForFiction(fictionId)
+
+    return entries[0]?.id ?? null
   }
 
   async getContinueReading(): Promise<

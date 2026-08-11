@@ -15,10 +15,10 @@ to a generic `ContentEntry` + `Index` model, per the appendix handoff.
 | 4 | Update TypeScript models/contracts | Done (already present in repo at session start) |
 | 5 | Update repository/services | Done this session |
 | 6 | Update the importer/database generation | Done this session |
-| 7 | Migrate the local working database | **Not started** — needs to be run locally with the new importer + a real `scripts/novel.config.json` |
+| 7 | Migrate the local working database | **Not started** — requires the author's real `scripts/novel.config.json` and source document, which are gitignored and only exist on the author's machine; cannot be done from this repo alone |
 | 8 | Verify the fiction and reading entries | **Not started** — depends on step 7 |
-| 9 | Implement the FictionView index UI | Not started |
-| 10 | Test touch/desktop index navigation and reader navigation | Not started |
+| 9 | Implement the FictionView index UI | Done this session |
+| 10 | Test touch/desktop index navigation and reader navigation | **Not started** — needs a real migrated database (step 7) to test against |
 
 Known open issue carried forward: `FictionView.vue`'s "Start reading" link
 still points at a hardcoded `/read/:fictionId/1`, which does not correspond
@@ -106,3 +106,48 @@ of step 9 (index UI), not this migration.
   concern from the content-side Chapter API. Renaming those fields would
   be a storage-schema migration, not a Chapter-API cleanup, and wasn't
   broken by this change.
+
+### Patch 3 — `fiction-index-ui.patch`
+
+**Files:** `src/services/library.service.ts`, `src/stores/library.store.ts`,
+`src/views/FictionView.vue`, `eslint.config.ts`
+
+- `library.service.ts`: added `getIndexesForFiction()` (thin pass-through
+  to `ContentRepositoryContract.listIndexesForFiction`) and
+  `getFirstEntryId()`, which resolves a fiction's first readable entry
+  from its actual entry sequence (`listEntriesForFiction()[0]`) instead
+  of assuming an entry ID of `1`.
+- `library.store.ts`: exposed both as store methods.
+- `FictionView.vue`:
+  - fixed the "Start reading" link, which previously pointed at the
+    hardcoded, non-existent route `/read/:fictionId/1`. It now links to
+    the resolved first entry ID and is hidden if no readable entry
+    exists.
+  - added an Index section rendering one card group per `FictionIndex`
+    (title + its ordered entries), fully driven by `listIndexesForFiction`
+    data — no ARC-specific or fiction-specific logic. A fiction with no
+    explicit index sections still gets a UI because the importer/schema
+    guarantees a default `Index` group.
+  - entry labels prefer the `index_entries.label` override and fall back
+    to `"{Type} {number}"` (matching `ReaderView`'s `entryEyebrow` logic)
+    or the entry's own title when it has no number (interludes, extras,
+    afterwords).
+  - each index group scrolls horizontally with CSS scroll-snap, which is
+    natively swipeable on touch; desktop gets explicit ‹ › buttons
+    (`scrollIndex()`) that page the track, hidden under 700px since touch
+    scrolling covers that case.
+- `eslint.config.ts`: added `HTMLElement` to the existing browser-global
+  allowlist (alongside `window`/`document`/`KeyboardEvent`), needed for
+  the template `:ref` callback's type annotation.
+
+**Verification:**
+- `npm run type-check` — 0 errors
+- `npm run test` — 18/18 passing
+- `npm run lint` — 10 pre-existing warnings, 0 errors, nothing new
+- `npm run build` — succeeded
+
+**Deliberately not touched, and why:**
+- Steps 7, 8, and 10 remain not started. They all require a database
+  migrated from a real `novel.config.json` + source document, which are
+  gitignored and exist only on the author's local machine — this session
+  had no access to them and stayed within the blank/template constraint.

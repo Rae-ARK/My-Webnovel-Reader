@@ -20,6 +20,7 @@ export default tseslint.config(
         window: 'readonly',
         document: 'readonly',
         KeyboardEvent: 'readonly',
+        HTMLElement: 'readonly',
       },
     },
     rules: {

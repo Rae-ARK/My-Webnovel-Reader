@@ -35,6 +35,14 @@ export const useLibraryStore = defineStore("library", () => {
     return container.libraryService.getFictionById(fictionId);
   }
 
+  function getIndexesForFiction(fictionId: string) {
+    return container.libraryService.getIndexesForFiction(fictionId);
+  }
+
+  function getFirstEntryId(fictionId: string) {
+    return container.libraryService.getFirstEntryId(fictionId);
+  }
+
   async function loadContinueReading() {
     return container.libraryService.getContinueReading();
   }
@@ -55,6 +63,8 @@ export const useLibraryStore = defineStore("library", () => {
     hasItems,
     load,
     getFictionById,
+    getIndexesForFiction,
+    getFirstEntryId,
     loadContinueReading,
     setFilters,
     clearError,
