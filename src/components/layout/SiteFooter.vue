@@ -157,6 +157,26 @@ function platformLabel(platform: string): string {
         <div v-html="site.advertising.html" />
       </section>
     </div>
+
+    <div class="shell footer-legal-bar">
+      <RouterLink to="/legal/privacy-policy">
+        Privacy Policy
+      </RouterLink>
+      <span
+        class="footer-legal-separator"
+        aria-hidden="true"
+      >|</span>
+      <RouterLink to="/legal/terms">
+        Terms & Conditions
+      </RouterLink>
+      <span
+        class="footer-legal-separator"
+        aria-hidden="true"
+      >|</span>
+      <RouterLink to="/legal/code-of-conduct">
+        Code of Conduct
+      </RouterLink>
+    </div>
   </footer>
 </template>
 
@@ -212,5 +232,30 @@ function platformLabel(platform: string): string {
 .footer-links a:hover {
   color: var(--accent);
   text-decoration: underline;
+}
+
+.footer-legal-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-block: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+.footer-legal-bar a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.footer-legal-bar a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.footer-legal-separator {
+  color: var(--border);
 }
 </style>

@@ -19,6 +19,17 @@ vi.mock('../../../config/site', () => ({
 
 import SiteFooter from '../SiteFooter.vue'
 
+const mountOptions = {
+  global: {
+    stubs: {
+      RouterLink: {
+        props: ['to'],
+        template: '<a :href="typeof to === \'string\' ? to : \'\'"><slot /></a>',
+      },
+    },
+  },
+}
+
 const baseConfig = {
   site: {
     title: 'Web Novel Reader',
@@ -46,7 +57,7 @@ describe('SiteFooter', () => {
   it('renders defaults-only for a fully unconfigured site', () => {
     mockSite.value = baseConfig
 
-    const wrapper = mount(SiteFooter)
+    const wrapper = mount(SiteFooter, mountOptions)
 
     // About boilerplate
     expect(wrapper.text()).toContain('Generic template about copy.')
@@ -61,6 +72,11 @@ describe('SiteFooter', () => {
     expect(wrapper.find('#footer-support-heading').exists()).toBe(true)
     expect(wrapper.find('#footer-contact-heading').exists()).toBe(true)
     expect(wrapper.find('a[href^="mailto:contact@example.com"]').exists()).toBe(true)
+
+    // Bottom-bar legal links are always present
+    expect(wrapper.find('a[href="/legal/privacy-policy"]').exists()).toBe(true)
+    expect(wrapper.find('a[href="/legal/terms"]').exists()).toBe(true)
+    expect(wrapper.find('a[href="/legal/code-of-conduct"]').exists()).toBe(true)
   })
 
   it('renders every column when fully configured', () => {
@@ -74,7 +90,7 @@ describe('SiteFooter', () => {
       advertising: { html: '<div class="ad">Sponsored</div>' },
     }
 
-    const wrapper = mount(SiteFooter)
+    const wrapper = mount(SiteFooter, mountOptions)
 
     expect(wrapper.find('#footer-advertising-heading').exists()).toBe(true)
     expect(wrapper.html()).toContain('Sponsored')
@@ -93,7 +109,7 @@ describe('SiteFooter', () => {
       advertising: undefined,
     }
 
-    const wrapper = mount(SiteFooter)
+    const wrapper = mount(SiteFooter, mountOptions)
 
     expect(wrapper.text()).toContain('GitHub')
     expect(wrapper.text()).toContain('Ko-fi')

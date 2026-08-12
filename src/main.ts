@@ -27,6 +27,10 @@ const router = createRouter({
       path: '/dev/theme-preview',
       component: () => import('./views/dev/ThemePreviewView.vue'),
     },
+    {
+      path: '/legal/:slug',
+      component: () => import('./views/legal/LegalPageView.vue'),
+    },
   ],
 })
 
