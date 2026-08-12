@@ -14,6 +14,7 @@ import { useReaderStore } from '../stores/reader.store'
 import { useSettingsStore } from '../stores/settings.store'
 import { useThemeStore, type Theme } from '../stores/theme.store'
 import type { Bookmark } from '../models/user-state'
+import author from '../config/author'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,6 +70,14 @@ const entryEyebrow = computed(() => {
     ? `${label} ${entry.number}`
     : label
 })
+
+const formatNoteDate = (timestamp: number): string => {
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
 
 const bookmarkLabel = (bookmark: Bookmark) => {
   if (bookmark.chapterId === chapterId.value) {
@@ -550,32 +559,184 @@ onBeforeUnmount(() => {
         v-html="reader.current.entry.content"
       />
 
-      <nav
-        class="reader__navigation"
-        aria-label="Entry navigation"
-      >
-        <button
-          type="button"
-          class="secondary-button"
-          :disabled="!reader.current.previous?.id"
-          @click="
-            goToEntry(reader.current.previous?.id)
-          "
+      <div class="reader__below">
+        <nav
+          class="chapter-nav"
+          aria-label="Chapter navigation"
         >
-          ← Previous
-        </button>
+          <div class="chapter-nav__row">
+            <button
+              type="button"
+              class="chapter-nav__button chapter-nav__button--previous"
+              :disabled="!reader.current.previous?.id"
+              @click="goToEntry(reader.current.previous?.id)"
+            >
+              « Previous Chapter
+            </button>
 
-        <button
-          type="button"
-          class="button"
-          :disabled="!reader.current.next?.id"
-          @click="
-            goToEntry(reader.current.next?.id)
-          "
+            <RouterLink
+              class="chapter-nav__button chapter-nav__button--index"
+              :to="`/fiction/${fictionId}`"
+            >
+              Fiction Index
+            </RouterLink>
+
+            <button
+              type="button"
+              class="chapter-nav__button chapter-nav__button--next"
+              :disabled="!reader.current.next?.id"
+              @click="goToEntry(reader.current.next?.id)"
+            >
+              Next Chapter »
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="chapter-nav__rss"
+            disabled
+            title="RSS feed support is planned but not wired up yet."
+          >
+            RSS
+          </button>
+        </nav>
+
+        <!--
+          Author's note. Always rendered — even with nothing written
+          yet — so the author sees exactly where a note will land once
+          they add one. Content comes from public/content/author-notes.json,
+          which scripts/set-chapter-note.py writes; see
+          src/repositories/AuthorNotesRepository.ts for why this lives
+          outside library.sqlite. `reader.authorNote` is null until a
+          note exists for this chapter id.
+        -->
+        <section
+          class="author-note"
+          aria-labelledby="author-note-heading"
         >
-          Next →
-        </button>
-      </nav>
+          <h2
+            id="author-note-heading"
+            class="author-note__heading"
+          >
+            <img
+              :src="author.avatarSquare"
+              alt=""
+              class="author-note__avatar"
+              width="28"
+              height="28"
+            >
+            A note from {{ author.name }}
+          </h2>
+
+          <div
+            v-if="reader.authorNote"
+            class="author-note__body"
+          >
+            <p
+              v-for="(paragraph, index) in reader.authorNote.note.split(/\n{2,}/)"
+              :key="index"
+            >
+              {{ paragraph }}
+            </p>
+
+            <p
+              v-if="reader.authorNote.updatedAt"
+              class="author-note__timestamp"
+            >
+              — {{ formatNoteDate(reader.authorNote.updatedAt) }}
+            </p>
+          </div>
+
+          <p
+            v-else
+            class="author-note__empty"
+          >
+            Nothing here yet. Add one with
+            <code>python3 scripts/set-chapter-note.py --chapter {{ chapterId }} --note "..."</code>.
+          </p>
+        </section>
+
+        <!--
+          About the author. Currently sourced from
+          author.config.reader.json via src/config/author.ts (name,
+          avatar, bio, social) — the only author data that actually
+          exists today. Follow/stats/achievements are left out on
+          purpose: there's no account system to follow anything with,
+          and there's no data source for stats yet. Both become
+          possible once Stage 9 of
+          docs/fiction-page-redesign-plan.md (the About Author page)
+          lands with a real profile data model; this card can switch
+          to reading that dynamically at that point instead of the
+          static config it reads today.
+        -->
+        <section
+          class="about-author"
+          aria-labelledby="about-author-heading"
+        >
+          <h2
+            id="about-author-heading"
+            class="about-author__heading"
+          >
+            About the author
+          </h2>
+
+          <div class="about-author__body">
+            <img
+              :src="author.avatarSquare"
+              alt=""
+              class="about-author__avatar"
+              width="72"
+              height="72"
+            >
+
+            <div class="about-author__details">
+              <div class="about-author__identity">
+                <p class="about-author__name">
+                  {{ author.name }}
+                </p>
+
+                <button
+                  type="button"
+                  class="about-author__follow"
+                  disabled
+                  title="There's no account system on this site — nothing to follow yet."
+                >
+                  Follow Author
+                </button>
+              </div>
+
+              <p
+                v-if="author.joined"
+                class="about-author__joined"
+              >
+                Joined {{ formatNoteDate(new Date(author.joined).getTime()) }}
+              </p>
+
+              <p class="about-author__bio">
+                {{ author.bio }}
+              </p>
+
+              <ul
+                v-if="author.social.length"
+                class="about-author__social"
+              >
+                <li
+                  v-for="entry in author.social"
+                  :key="entry.platform"
+                >
+                  <a
+                    :href="entry.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ entry.platform }}
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
     </article>
   </main>
 </template>
@@ -757,13 +918,227 @@ onBeforeUnmount(() => {
   color: var(--danger);
 }
 
-.reader__navigation {
+.reader__below {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 1.5rem;
   margin-top: 4rem;
   padding-top: 2rem;
   border-top: 1px solid var(--border);
+}
+
+.chapter-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chapter-nav__row {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.chapter-nav__button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  color: var(--text-on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md, 0.5rem);
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.chapter-nav__button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.chapter-nav__button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chapter-nav__button--index {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.chapter-nav__button--index:hover {
+  background: var(--bg-surface);
+}
+
+.chapter-nav__rss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.6rem 1.1rem;
+  color: var(--text-on-accent);
+  background: #e8912b;
+  border: none;
+  border-radius: var(--radius-md, 0.5rem);
+  font: inherit;
+  font-weight: 700;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.author-note {
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 1rem);
+}
+
+.author-note__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.85rem;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.author-note__avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.author-note__body p {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.author-note__body p:last-child {
+  margin-bottom: 0;
+}
+
+.author-note__timestamp {
+  color: var(--text-subtle) !important;
+  font-size: 0.8rem;
+}
+
+.author-note__empty {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.author-note__empty code {
+  padding: 0.1rem 0.35rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm, 0.25rem);
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.about-author {
+  padding: 1.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 1rem);
+}
+
+.about-author__heading {
+  margin: 0 0 1rem;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.about-author__body {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.about-author__avatar {
+  flex-shrink: 0;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.about-author__details {
+  flex: 1;
+  min-width: 0;
+}
+
+.about-author__identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.about-author__name {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.about-author__follow {
+  padding: 0.4rem 0.85rem;
+  color: var(--text-on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md, 0.5rem);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.about-author__joined {
+  margin: 0.35rem 0 0;
+  color: var(--text-subtle);
+  font-size: 0.8rem;
+}
+
+.about-author__bio {
+  margin: 0.75rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.about-author__social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-author__social a {
+  padding: 0.3rem 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  text-decoration: none;
+  text-transform: capitalize;
+}
+
+.about-author__social a:hover {
+  color: var(--accent);
 }
 
 .reader-state {
@@ -818,12 +1193,22 @@ onBeforeUnmount(() => {
     display: none;
   }
 
-  .reader__navigation {
+  .chapter-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chapter-nav__row {
     flex-direction: column;
   }
 
-  .reader__navigation > * {
+  .chapter-nav__rss {
     width: 100%;
+  }
+
+  .about-author__body {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

@@ -2,6 +2,8 @@ import type { ContentEntry } from '../models/content'
 import type { ContentRepositoryContract } from '../repositories/contracts/ContentRepositoryContract'
 import type { UserStateRepositoryContract } from '../repositories/contracts/UserStateRepositoryContract'
 import type { ReadingProgress } from '../models/user-state'
+import type { AuthorNote } from '../models/author-note'
+import type { AuthorNotesRepository } from '../repositories/AuthorNotesRepository'
 
 export interface EntryNavigation {
   previous: ContentEntry | null
@@ -20,6 +22,7 @@ export class ReaderService {
   constructor(
     private readonly contentRepository: ContentRepositoryContract,
     private readonly userStateRepository: UserStateRepositoryContract,
+    private readonly authorNotesRepository?: AuthorNotesRepository,
   ) {}
 
   getEntry(
@@ -71,6 +74,16 @@ export class ReaderService {
       previous: result.previous,
       next: result.next,
     }
+  }
+
+  async getAuthorNote(
+    chapterId: string,
+  ): Promise<AuthorNote | null> {
+    if (!this.authorNotesRepository) {
+      return null
+    }
+
+    return this.authorNotesRepository.getNote(chapterId)
   }
 
   async getProgress(

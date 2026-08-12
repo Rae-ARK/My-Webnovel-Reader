@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useLibraryStore } from '../stores/library.store'
 import { useFavoritesStore } from '../stores/favorites.store'
@@ -19,7 +19,16 @@ const firstEntryId = ref<string | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-const indexTracks = ref<Record<string, HTMLElement | null>>({})
+// Table-of-contents state. The index is presented Royal-Road-style:
+// a tab strip ("All Chapters" plus one tab per Index/arc/volume), a
+// search box and an entries-per-page control, a table of entries for
+// the active tab, and pagination — instead of the previous horizontal
+// scrolling card track.
+const selectedTabId = ref('all')
+const searchQuery = ref('')
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const
+const pageSize = ref<number>(PAGE_SIZE_OPTIONS[0])
+const currentPage = ref(1)
 
 const SYNOPSIS_COLLAPSE_THRESHOLD = 360
 const synopsisExpanded = ref(false)
@@ -54,6 +63,129 @@ const primaryActionEntryId = computed(
 const primaryActionLabel = computed(() =>
   readerStore.progress ? 'Continue Reading' : 'Start Reading',
 )
+
+interface IndexTab {
+  id: string
+  title: string
+  items: FictionIndex['entries']
+}
+
+// "All Chapters" flattens every index's entries into one ordered,
+// deduplicated list (an entry can legitimately appear in more than
+// one index/arc grouping upstream).
+const flatEntries = computed<FictionIndex['entries']>(() => {
+  const seen = new Set<string>()
+  const merged: FictionIndex['entries'] = []
+
+  for (const index of indexes.value) {
+    for (const item of index.entries) {
+      if (!seen.has(item.entry.id)) {
+        seen.add(item.entry.id)
+        merged.push(item)
+      }
+    }
+  }
+
+  return merged
+})
+
+const tabs = computed<IndexTab[]>(() => [
+  { id: 'all', title: 'All Chapters', items: flatEntries.value },
+  ...indexes.value.map((index) => ({
+    id: index.id,
+    title: index.title,
+    items: index.entries,
+  })),
+])
+
+const activeTab = computed<IndexTab | undefined>(() =>
+  tabs.value.find((tab) => tab.id === selectedTabId.value) ?? tabs.value[0],
+)
+
+const filteredItems = computed<FictionIndex['entries']>(() => {
+  const items = activeTab.value?.items ?? []
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return items
+  }
+
+  return items.filter((item) =>
+    entryLabel(item.entry, item.label).toLowerCase().includes(query),
+  )
+})
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredItems.value.length / pageSize.value)),
+)
+
+const pagedItems = computed<FictionIndex['entries']>(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredItems.value.slice(start, start + pageSize.value)
+})
+
+// Windowed page-number buttons so a 33-chapter, 10-per-page fiction
+// doesn't render dozens of buttons once a fiction grows much larger.
+const pageNumbers = computed<number[]>(() => {
+  const maxButtons = 7
+
+  if (totalPages.value <= maxButtons) {
+    return Array.from({ length: totalPages.value }, (_, i) => i + 1)
+  }
+
+  const half = Math.floor(maxButtons / 2)
+  let start = Math.max(1, currentPage.value - half)
+  const end = Math.min(totalPages.value, start + maxButtons - 1)
+  start = Math.max(1, end - maxButtons + 1)
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+
+watch([selectedTabId, searchQuery, pageSize], () => {
+  currentPage.value = 1
+})
+
+function selectTab(tabId: string) {
+  selectedTabId.value = tabId
+}
+
+function goToPage(page: number) {
+  currentPage.value = Math.min(totalPages.value, Math.max(1, page))
+}
+
+// `releasedAt` isn't populated by any current import path (see the
+// comment on ContentEntry in src/models/content.ts) — this renders an
+// em dash until a real timestamp is available instead of guessing.
+function formatRelativeDate(timestamp: number | null | undefined): string {
+  if (!timestamp) {
+    return '—'
+  }
+
+  const diffMs = Date.now() - timestamp
+  const diffDays = Math.floor(diffMs / 86_400_000)
+
+  if (diffDays <= 0) {
+    return 'today'
+  }
+
+  if (diffDays === 1) {
+    return '1 day ago'
+  }
+
+  if (diffDays < 30) {
+    return `${diffDays} days ago`
+  }
+
+  const diffMonths = Math.floor(diffDays / 30)
+
+  if (diffMonths < 12) {
+    return diffMonths === 1 ? '1 month ago' : `${diffMonths} months ago`
+  }
+
+  const diffYears = Math.floor(diffMonths / 12)
+
+  return diffYears === 1 ? '1 year ago' : `${diffYears} years ago`
+}
 
 onMounted(async () => {
   loading.value = true
@@ -111,23 +243,6 @@ function entryLabel(
   }
 
   return entry.title
-}
-
-function entryGlyph(entry: ContentEntry, label: string | null): string {
-  return entryLabel(entry, label).charAt(0).toUpperCase()
-}
-
-function scrollIndex(indexId: string, direction: 1 | -1) {
-  const track = indexTracks.value[indexId]
-
-  if (!track) {
-    return
-  }
-
-  track.scrollBy({
-    left: direction * track.clientWidth * 0.9,
-    behavior: 'smooth',
-  })
 }
 
 function formatSavedDate(timestamp: number): string {
@@ -265,70 +380,149 @@ function formatSavedDate(timestamp: number): string {
               class="fiction-index"
               aria-labelledby="fiction-index-heading"
             >
-              <h2
-                id="fiction-index-heading"
-                class="eyebrow"
-              >
-                Index
-              </h2>
+              <div class="fiction-index__header">
+                <h2
+                  id="fiction-index-heading"
+                  class="eyebrow"
+                >
+                  Table of Contents
+                </h2>
+                <span class="fiction-index__count">
+                  {{ flatEntries.length }} {{ flatEntries.length === 1 ? 'Chapter' : 'Chapters' }}
+                </span>
+              </div>
 
               <div
-                v-for="index in indexes"
-                :key="index.id"
-                class="fiction-index__group"
+                class="fiction-index__tabs"
+                role="tablist"
+                aria-label="Chapter groups"
               >
-                <div class="fiction-index__group-header">
-                  <h3>{{ index.title }}</h3>
-
-                  <div
-                    v-if="index.entries.length > 1"
-                    class="fiction-index__nav"
-                  >
-                    <button
-                      type="button"
-                      class="fiction-index__nav-button"
-                      aria-label="Scroll index backward"
-                      @click="scrollIndex(index.id, -1)"
-                    >
-                      ‹
-                    </button>
-                    <button
-                      type="button"
-                      class="fiction-index__nav-button"
-                      aria-label="Scroll index forward"
-                      @click="scrollIndex(index.id, 1)"
-                    >
-                      ›
-                    </button>
-                  </div>
-                </div>
-
-                <ul
-                  :ref="(el) => (indexTracks[index.id] = el as HTMLElement | null)"
-                  class="fiction-index__track"
+                <button
+                  v-for="tab in tabs"
+                  :key="tab.id"
+                  type="button"
+                  role="tab"
+                  class="fiction-index__tab"
+                  :class="{ 'is-active': activeTab?.id === tab.id }"
+                  :aria-selected="activeTab?.id === tab.id"
+                  @click="selectTab(tab.id)"
                 >
-                  <li
-                    v-for="item in index.entries"
-                    :key="item.entry.id"
-                    class="fiction-index__item"
+                  <span
+                    class="fiction-index__tab-cover"
+                    aria-hidden="true"
                   >
-                    <RouterLink
-                      class="fiction-index__card"
-                      :to="`/read/${fiction.id}/${item.entry.id}`"
+                    <img
+                      v-if="fiction.cover"
+                      :src="fiction.cover"
+                      alt=""
                     >
-                      <span
-                        class="fiction-index__card-glyph"
-                        aria-hidden="true"
-                      >
-                        {{ entryGlyph(item.entry, item.label) }}
-                      </span>
-                      <span class="fiction-index__card-label">
-                        {{ entryLabel(item.entry, item.label) }}
-                      </span>
-                    </RouterLink>
-                  </li>
-                </ul>
+                    <span v-else>{{ tab.title.charAt(0) }}</span>
+                  </span>
+                  <span class="fiction-index__tab-label">
+                    {{ tab.title }}
+                  </span>
+                </button>
               </div>
+
+              <div class="fiction-index__controls">
+                <label class="fiction-index__page-size">
+                  <select v-model.number="pageSize">
+                    <option
+                      v-for="size in PAGE_SIZE_OPTIONS"
+                      :key="size"
+                      :value="size"
+                    >
+                      {{ size }}
+                    </option>
+                  </select>
+                  entries per page
+                </label>
+
+                <input
+                  v-model="searchQuery"
+                  type="search"
+                  class="fiction-index__search"
+                  placeholder="Search..."
+                  aria-label="Search chapters in this tab"
+                >
+              </div>
+
+              <table class="fiction-index__table">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      Chapter Name
+                    </th>
+                    <th
+                      scope="col"
+                      class="fiction-index__table-date"
+                    >
+                      Release Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="!pagedItems.length">
+                    <td
+                      colspan="2"
+                      class="fiction-index__table-empty"
+                    >
+                      {{ searchQuery ? 'No chapters match your search.' : 'Nothing here yet.' }}
+                    </td>
+                  </tr>
+                  <tr
+                    v-for="item in pagedItems"
+                    :key="item.entry.id"
+                  >
+                    <td>
+                      <RouterLink :to="`/read/${fiction.id}/${item.entry.id}`">
+                        {{ entryLabel(item.entry, item.label) }}
+                      </RouterLink>
+                    </td>
+                    <td class="fiction-index__table-date">
+                      {{ formatRelativeDate(item.entry.releasedAt) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <nav
+                v-if="totalPages > 1"
+                class="fiction-index__pagination"
+                aria-label="Chapter list pages"
+              >
+                <button
+                  type="button"
+                  class="fiction-index__page-button"
+                  :disabled="currentPage === 1"
+                  aria-label="Previous page"
+                  @click="goToPage(currentPage - 1)"
+                >
+                  ‹
+                </button>
+
+                <button
+                  v-for="page in pageNumbers"
+                  :key="page"
+                  type="button"
+                  class="fiction-index__page-button"
+                  :class="{ 'is-active': page === currentPage }"
+                  :aria-current="page === currentPage ? 'page' : undefined"
+                  @click="goToPage(page)"
+                >
+                  {{ page }}
+                </button>
+
+                <button
+                  type="button"
+                  class="fiction-index__page-button"
+                  :disabled="currentPage === totalPages"
+                  aria-label="Next page"
+                  @click="goToPage(currentPage + 1)"
+                >
+                  ›
+                </button>
+              </nav>
             </section>
           </div>
 
@@ -613,111 +807,206 @@ function formatSavedDate(timestamp: number): string {
   margin-top: 2.5rem;
 }
 
-.fiction-index > .eyebrow {
+.fiction-index__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1rem;
 }
 
-.fiction-index__group {
-  margin-bottom: 2rem;
+.fiction-index__header > .eyebrow {
+  margin: 0;
 }
 
-.fiction-index__group-header {
+.fiction-index__count {
+  padding: 0.2rem 0.6rem;
+  color: var(--text-subtle);
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.fiction-index__tabs {
   display: flex;
-  align-items: baseline;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 0.25rem 0.1rem 0.75rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.fiction-index__tab {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 6.5rem;
+  padding: 0.5rem;
+  color: var(--text);
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md, 0.5rem);
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+}
+
+.fiction-index__tab.is-active {
+  border-color: var(--accent);
+  background: var(--bg-surface);
+}
+
+.fiction-index__tab:hover:not(.is-active) {
+  background: var(--bg-elevated);
+}
+
+.fiction-index__tab-cover {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  color: var(--text-on-accent);
+  background: linear-gradient(160deg, var(--bg-surface), var(--bg-elevated));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 0.375rem);
+  font-weight: 700;
+}
+
+.fiction-index__tab-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fiction-index__tab-label {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.fiction-index__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 0.75rem;
 }
 
-.fiction-index__group-header h3 {
-  margin: 0;
-  color: var(--text);
-  font-size: 1.1rem;
+.fiction-index__page-size {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
-.fiction-index__nav {
-  display: none;
-  gap: 0.4rem;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .fiction-index__nav {
-    display: flex;
-  }
-}
-
-.fiction-index__nav-button {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
+.fiction-index__page-size select {
+  padding: 0.4rem 0.6rem;
   color: var(--text);
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
+  border-radius: var(--radius-sm, 0.375rem);
+  font: inherit;
 }
 
-.fiction-index__track {
-  display: flex;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0.25rem 0.1rem 0.75rem;
-  list-style: none;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-}
-
-.fiction-index__item {
-  flex: 0 0 auto;
-  scroll-snap-align: start;
-}
-
-.fiction-index__card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  width: 8rem;
-  aspect-ratio: 2 / 3;
-  padding: 0.85rem;
+.fiction-index__search {
+  flex: 1 1 12rem;
+  max-width: 16rem;
+  padding: 0.5rem 0.75rem;
   color: var(--text);
-  text-align: center;
-  text-decoration: none;
-  background: linear-gradient(160deg, var(--bg-surface), var(--bg-elevated));
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md, 0.5rem);
+  border-radius: var(--radius-sm, 0.375rem);
+  font: inherit;
 }
 
-.fiction-index__card:hover,
-.fiction-index__card:focus-visible {
+.fiction-index__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.fiction-index__table th {
+  padding: 0.6rem 0.5rem;
+  color: var(--text);
+  text-align: left;
+  border-bottom: 2px solid var(--border);
+}
+
+.fiction-index__table td {
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.fiction-index__table tbody tr:hover {
+  background: var(--bg-surface);
+}
+
+.fiction-index__table a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.fiction-index__table a:hover {
+  color: var(--accent);
+}
+
+.fiction-index__table-date {
+  width: 9rem;
+  color: var(--text-subtle);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.fiction-index__table-empty {
+  padding: 1.5rem 0.5rem;
+  color: var(--text-subtle);
+  text-align: center;
+}
+
+.fiction-index__pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 1.25rem;
+}
+
+.fiction-index__page-button {
+  display: grid;
+  place-items: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.5rem;
+  color: var(--text);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 0.375rem);
+  cursor: pointer;
+  font: inherit;
+}
+
+.fiction-index__page-button:hover:not(:disabled) {
+  background: var(--bg-elevated);
+}
+
+.fiction-index__page-button.is-active {
+  color: var(--text-on-accent);
+  background: var(--accent);
   border-color: var(--accent);
 }
 
-.fiction-index__card-glyph {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  color: var(--text-on-accent);
-  background: var(--accent);
-  border-radius: 50%;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.fiction-index__card-label {
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: 0.8rem;
-  line-height: 1.3;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+.fiction-index__page-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .fiction-columns__sidebar {

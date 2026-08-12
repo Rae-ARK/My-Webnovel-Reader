@@ -4,6 +4,7 @@ import type {
   Bookmark,
   ReadingProgress,
 } from "../models/user-state";
+import type { AuthorNote } from "../models/author-note";
 import type { ReaderEntry } from "../services/reader.service";
 import { appContainer } from "../container";
 
@@ -12,6 +13,7 @@ export const useReaderStore = defineStore("reader", () => {
 
   const current = ref<ReaderEntry | null>(null);
   const progress = ref<ReadingProgress | null>(null);
+  const authorNote = ref<AuthorNote | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -34,6 +36,8 @@ export const useReaderStore = defineStore("reader", () => {
       current.value = entry;
       progress.value =
         await container.readerService.getProgress(fictionId);
+      authorNote.value = null;
+      void loadAuthorNote(entryId);
 
       return entry;
     } catch (cause) {
@@ -50,6 +54,13 @@ export const useReaderStore = defineStore("reader", () => {
 
   function getEntryTitle(entryId: string): string | null {
     return container.readerService.getEntryTitle(entryId);
+  }
+
+  async function loadAuthorNote(chapterId: string) {
+    authorNote.value =
+      await container.readerService.getAuthorNote(chapterId);
+
+    return authorNote.value;
   }
 
   async function loadProgress(fictionId: string) {
@@ -118,10 +129,12 @@ export const useReaderStore = defineStore("reader", () => {
   return {
     current,
     progress,
+    authorNote,
     loading,
     error,
     loadEntry,
     getEntryTitle,
+    loadAuthorNote,
     loadProgress,
     saveProgress,
     saveProgressDebounced,

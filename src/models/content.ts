@@ -22,6 +22,15 @@ export interface ContentEntry {
   number: number | null
   title: string
   content: string
+  /**
+   * Publish timestamp (ms epoch), shown as a relative "released X ago"
+   * value in the fiction index table. Optional and `undefined` today —
+   * `content_entries` has no such column yet, so `ContentRepository`
+   * never populates it. Modeled here ahead of that migration so the
+   * index UI has a real field to read instead of fabricating dates;
+   * the table falls back to an em dash until a column exists.
+   */
+  releasedAt?: number | null
 }
 
 export interface Index {
