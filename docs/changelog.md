@@ -230,3 +230,82 @@ Three fixes bundled together, found while preparing to re-run step 7:
 - `python3 -m py_compile scripts/import-novel.py` — no syntax errors
 - Not yet run against the real document/database — folded into the
   step 7 re-run.
+
+### Patch 6 — `logo-and-title-fix.patch`
+
+**Files:** `src/components/layout/SiteHeader.vue`, `src/views/HomeView.vue`
+
+Two visual bugs reported against a real `logo.png`:
+
+- **Logo distortion.** Both places rendering `site.site.icon`
+  (header brand mark, home hero) had matching `width` and `height`
+  HTML attributes, forcing a square box regardless of the source
+  image's actual proportions — a non-square logo got stretched to
+  fit. Dropped `width`, kept `height` as the sizing anchor, and added
+  `width: auto; object-fit: contain;` in CSS so the logo scales
+  proportionally instead.
+- **Home hero title wrapping.** "Horizon ARK Studio" wrapped onto two
+  lines on narrow viewports. `.hero h1` had no `white-space` or
+  `flex-wrap` control, and its font-size `clamp()` floor (`2.5rem`)
+  was too large to fit on mobile widths. Added
+  `flex-wrap: nowrap; white-space: nowrap;` and lowered the clamp
+  floor to `1.5rem` so the title shrinks enough to stay on one line.
+
+**Verification:**
+- `npm run type-check` — 0 errors
+- `npm run test` — 28/28 passing
+- `npm run lint` — 10 pre-existing warnings, 0 errors, nothing new
+- `npm run build` — succeeded
+
+### Patch 7 — `stage6-frosted-glass-tokens.patch` (Fiction Page & Site Identity Redesign, Stage 6)
+
+**Files:** `src/styles.css`, `src/components/layout/SiteHeader.vue`,
+`src/components/layout/SiteFooter.vue`, `src/views/dev/ThemePreviewView.vue`
+
+Implements Stage 6 of `docs/fiction-page-redesign-plan.md` — the
+frosted-glass design tokens. See `docs/web-novel-reader-architecture.md`
+§23c for the token reference and the usage convention.
+
+- New tokens per theme (light/cream/dark) in `src/styles.css`:
+  `--glass-bg`, `--glass-border` (~72%/~60% opacity respectively), and
+  a shared `--glass-blur: 8px`.
+- New `.glass-surface` utility class: opaque `var(--bg-elevated)` by
+  default; enhanced to translucent + blurred only inside
+  `@supports (backdrop-filter: blur(1px))`; a
+  `prefers-reduced-transparency: reduce` block always wins regardless
+  of support, forcing the opaque fallback back on.
+- Applied to `SiteHeader.vue` and `SiteFooter.vue` only — the sidebar
+  quick-actions card doesn't exist yet (Stage 7). Both components had
+  their border shorthand (`border-bottom`/`border-top: 1px solid
+  var(--border)`) split into `border-*-width` / `border-*-style`
+  only, since the shorthand form implicitly resets `border-color` and
+  would have fought the utility class's color.
+- Added a "Surfaces" section to the dev `ThemePreviewView.vue`: a
+  glass swatch against a striped backdrop (so the blur/translucency
+  is actually visible against something) next to a plain-surface
+  swatch for comparison, plus a note to simulate
+  `prefers-reduced-transparency` in DevTools.
+
+**What did NOT change:** no layout changes anywhere, and the
+synopsis/reading surface/other body-text areas were left untouched,
+per the plan's explicit scope for this stage. An initial `position:
+sticky` added to the header was caught and reverted during review as
+out of scope for a tokens-only stage.
+
+**Verification:**
+- `npm run type-check` — 0 errors
+- `npm run test` — 28/28 passing
+- `npm run lint` — 10 pre-existing warnings, 0 errors, nothing new
+- `npm run build` — succeeded
+- Regenerated as a true incremental diff on top of Patch 6 (both
+  patches were originally `git diff`'d independently against the same
+  clean clone, which meant Patch 7's `SiteHeader.vue` hunk still
+  expected the pre-Patch-6 file and failed to apply after it).
+  Verified on a fresh clone: `git apply logo-and-title-fix.patch &&
+  git apply stage6-frosted-glass-tokens.patch` applies cleanly, then
+  type-check and build both pass.
+
+**Deliberately not touched, and why:**
+- Sidebar quick-actions card — doesn't exist until Stage 7.
+- `FictionView.vue` layout — Stage 7's job, not Stage 6's.
+- Header structural redesign — explicitly deferred to Stage 8.

@@ -844,6 +844,52 @@ a generic blurred-gradient banner (in the spirit of Royal Road's
 default profile banner) when `banner` is unset, and the real image
 when it is.
 
+## 23c. Frosted Glass Chrome Tokens
+
+Introduced in Stage 6 of `docs/fiction-page-redesign-plan.md`. Three
+custom properties, themed per `data-theme` in `src/styles.css`:
+
+```text
+--glass-bg      translucent surface color (~72% opacity)
+--glass-border  translucent border color (~60% opacity)
+--glass-blur    backdrop blur radius (8px, shared across themes)
+```
+
+They're consumed through one utility class, `.glass-surface`, also in
+`src/styles.css` — not applied ad hoc per component:
+
+```text
+.glass-surface
+    ↓
+default: opaque var(--bg-elevated), no blur
+    ↓
+@supports (backdrop-filter) → translucent + blurred
+    ↓
+@media (prefers-reduced-transparency: reduce) → back to opaque, always wins
+```
+
+The opaque state is the default, not a fallback bolted on afterward —
+a component wearing only `.glass-surface` renders correctly with zero
+other code, before the `@supports` condition is even evaluated.
+
+**Scope:** chrome only — header/nav (`SiteHeader.vue`), the sidebar
+quick-actions card (once Stage 7 builds it), and the footer's top
+edge (`SiteFooter.vue`). Never the synopsis, the reading surface, or
+any other large body-text area, where blur under text hurts legibility
+and costs more on lower-end devices.
+
+**Convention for components using it:** don't declare your own
+`background` or a `border` shorthand alongside `.glass-surface`. A
+scoped Vue style block always out-specifies a global utility class
+(the injected `data-v-*` attribute selector adds weight the utility
+doesn't have), so a component's own `background: var(--bg-elevated)`
+or `border-bottom: 1px solid var(--border)` silently wins and defeats
+the fallback logic — the border shorthand is a common trap here, since
+it implicitly resets `border-color` to `currentColor` even when you
+only meant to set the width. Declare structure only —
+`border-bottom-width` / `border-bottom-style` — and let
+`.glass-surface` own the color.
+
 ---
 
 ## 24. Configuration Should Not Contain Secrets
