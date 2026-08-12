@@ -37,7 +37,6 @@ onMounted(async () => {
           :src="site.site.icon"
           alt=""
           class="hero-icon"
-          width="40"
           height="40"
         >
         {{ site.site.title }}
@@ -134,20 +133,24 @@ onMounted(async () => {
 
 .hero h1 {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.85rem;
   max-width: 48rem;
   margin: 0;
   color: var(--text);
-  font-size: clamp(2.5rem, 8vw, 5rem);
+  font-size: clamp(1.5rem, 6vw, 5rem);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .hero-icon {
   flex-shrink: 0;
   display: block;
-  width: clamp(2rem, 6vw, 3.5rem);
+  width: auto;
   height: clamp(2rem, 6vw, 3.5rem);
+  max-width: clamp(2rem, 6vw, 3.5rem);
+  object-fit: contain;
   border-radius: var(--radius-md, 0.5rem);
 }
 

@@ -12,7 +12,6 @@ import site from '../../config/site'
         :src="site.site.icon"
         alt=""
         class="brand-icon"
-        width="24"
         height="24"
       >
       {{ site.site.title }}
@@ -49,6 +48,10 @@ import site from '../../config/site'
 
 .brand-icon {
   display: block;
+  width: auto;
+  height: 24px;
+  max-width: 24px;
+  object-fit: contain;
   border-radius: var(--radius-sm, 0.25rem);
 }
 
