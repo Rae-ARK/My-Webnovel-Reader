@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import site from '../config/site'
+import author from '../config/author'
 import FictionCard from '../components/molecules/FictionCard.vue'
 import ContinueReadingCard from '../components/molecules/ContinueReadingCard.vue'
 import { useLibraryStore } from '../stores/library.store'
@@ -20,8 +21,15 @@ onMounted(async () => {
 <template>
   <main>
     <section class="shell hero">
-      <p class="eyebrow">
-        {{ site.site.author }}
+      <p class="eyebrow author-eyebrow">
+        <img
+          :src="author.avatarSquare"
+          alt=""
+          class="author-avatar"
+          width="20"
+          height="20"
+        >
+        {{ author.name }}
       </p>
 
       <h1>
@@ -141,6 +149,20 @@ onMounted(async () => {
   width: clamp(2rem, 6vw, 3.5rem);
   height: clamp(2rem, 6vw, 3.5rem);
   border-radius: var(--radius-md, 0.5rem);
+}
+
+.author-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.author-avatar {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .hero > p:not(.eyebrow) {

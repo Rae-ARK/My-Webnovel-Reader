@@ -794,6 +794,58 @@ This makes the repository easy to clone and customize.
 
 ---
 
+## 23a. Author Identity vs. Site Configuration
+
+Author identity (name, avatars, bio, banner, social links) is kept in
+its own config module, separate from `site.config.reader.ts`:
+
+```text
+src/config/
+├── site.config.reader.ts    (site-wide: title, description, icon, ...)
+└── author.config.reader.json (author identity: name, avatars, bio, ...)
+```
+
+This exists because a published `library.sqlite` stores an `author`
+string per fiction (`fictions.author`), not a single site-wide author.
+Most single-author sites will only ever see one distinct value there,
+but the schema does not guarantee it — a database can technically
+contain more than one distinct author (careless imports, or a site
+hosting more than one writer's work). `author.config.reader.json` is
+what the application treats as *the site's* displayed author; it does
+not read `fictions.author` at runtime.
+
+`scripts/setup-author.py` is the supported way to generate or update
+this file. It reads the distinct `author` values out of the published
+database and:
+
+- auto-fills the config when there is exactly one distinct author
+- prompts interactively when there is more than one (or accepts
+  `--author "Name"`/`--non-interactive` for scripted/CI use)
+
+No component should hardcode an author's name or image path — they
+should import `src/config/author.ts` instead.
+
+## 23b. Author Images
+
+Three image conventions exist under `public/images/` (see that
+folder's `README.md`):
+
+- `logo.png` — the site logo/favicon, referenced by
+  `site.config.reader.ts`'s `site.icon`.
+- `profile-square.png` — the author's compact avatar, used everywhere
+  the author's identity currently appears (home hero, footer byline).
+- `profile-full.png` / `banner.jpg` — reserved for the future About
+  Author page (see `docs/fiction-page-redesign-plan.md`); not rendered
+  anywhere yet.
+
+Until the About Author page exists, an unset `author.banner` has no
+visible effect. Once that page is built, the plan is for it to render
+a generic blurred-gradient banner (in the spirit of Royal Road's
+default profile banner) when `banner` is unset, and the real image
+when it is.
+
+---
+
 ## 24. Configuration Should Not Contain Secrets
 
 The configuration file can contain:

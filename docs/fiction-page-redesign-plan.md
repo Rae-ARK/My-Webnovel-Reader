@@ -304,10 +304,12 @@ place.
   (Favorites, a reading-progress/"continue" affordance) and dropping
   the parts that don't (Follow, Not Interested, Report — all
   multi-user platform features with no equivalent here).
-- An author card: name, a short blurb (from `site.site.about` or a
-  future per-fiction author blurb field), and the `site.social` links
-  from Stage 3 instead of a "Follow Author" button, since there's no
-  account system to follow anything with.
+- An author card: avatar (`author.avatarSquare`, from
+  `src/config/author.ts` — see Stage 9 below), name, a short blurb
+  (`author.bio`), and `author.social`/`site.social` links instead of a
+  "Follow Author" button, since there's no account system to follow
+  anything with. Card links through to the future About Author page
+  once Stage 9 exists.
 
 **Explicitly dropped from the reference** (out of scope for a
 single-reader, static, read-only app): reviews/ratings, "Others also
@@ -346,6 +348,44 @@ This gets its own planning pass once there's a working, redesigned
 footer and fiction page to design the header around — deciding the
 header first, before the page it sits above, would be building it
 backwards.
+
+---
+
+## Stage 9 — About Author page (deferred)
+
+**Not part of this plan's scope yet.** Recorded here so the shape is
+settled before it's built, using a Royal Road member-profile page as
+a visual reference (cover-style banner, circular avatar overlapping
+the banner, name, an "Overview" and a "Fictions" tab).
+
+**What this app keeps from the reference:**
+- Banner + large circular avatar header treatment.
+- Two tabs: **Overview** (bio, stats such as total fictions/word
+  count, social links) and **Fictions** (a grid/list of this author's
+  published works, reusing the existing `FictionCard`).
+
+**What this app drops from the reference:** everything tied to a
+multi-user platform with accounts — Follow/Block, Reviews, Favorites,
+Threads, Posts, Achievements, Reputation. There's no account system
+here, so none of those have an equivalent.
+
+**Data source:** entirely `src/config/author.ts` (name, `bio`,
+`avatarFull`, `banner`, `social`, `joined`) plus the existing
+`ContentRepository`/`library.store` for the Fictions tab — no new
+schema needed.
+
+**Banner behavior:**
+- `author.banner` unset (the default) → a generic blurred-gradient
+  banner in the spirit of Royal Road's own default profile banner,
+  built with CSS only (no placeholder image asset needed).
+- `author.banner` set → that image renders instead.
+
+**Avatar:** `author.avatarFull` here (not `avatarSquare`, which is
+reserved for the compact mark used elsewhere in the app today).
+
+**Verification (once built):** manual pass with `author.banner` unset
+(gradient default) and set (real image), and with zero vs. multiple
+fictions in the Fictions tab.
 
 ---
 

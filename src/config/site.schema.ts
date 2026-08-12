@@ -37,9 +37,16 @@ export const socialLinkSchema = z.object({
 export const siteConfigSchema = z.object({
   site: z.object({
     title: z.string().min(1),
-    author: z.string().min(1),
     description: z.string().min(1),
-    /** Path/convention for the site icon. Exact loading approach is decided in Stage 2. */
+    /**
+     * Path/convention for the site icon (logo), used as both the
+     * favicon and the header/home brand mark. The template default is
+     * the generic SVG placeholder; an author's real site should point
+     * this at their own logo under `/images/` (see
+     * `docs/web-novel-reader-architecture.md` "Author Images"). Any
+     * raster or vector format is fine — `main.ts` derives the favicon
+     * MIME type from the file extension at runtime.
+     */
     icon: z.string().min(1).default('/icon.svg'),
     /** Free text shown in the footer's About column (Stage 3). */
     about: z.string().min(1).default(DEFAULT_ABOUT),

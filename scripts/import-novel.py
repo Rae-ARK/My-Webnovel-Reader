@@ -1,3 +1,43 @@
+"""
+Import a fiction from a .docx source document into library.sqlite,
+per a novel.config.json file (see novel.config.example.json).
+
+Safe to re-run against a database that already contains other
+fictions -- only the fiction named by the config's fiction_id is ever
+touched. Safe to re-run against a fiction that was already imported,
+as long as you tell it what to do about the conflict:
+
+    --overwrite     Fully replace the existing fiction with this import.
+    --merge         Keep the existing fiction; add new entries, and
+                     resolve entries that already exist per --on-conflict.
+    --on-conflict {skip,overwrite,abort}
+                     How to resolve entries that already exist during a
+                     --merge. Default: prompt interactively, or abort if
+                     --non-interactive.
+
+Neither flag given, and the fiction already exists: the script refuses
+and explains the two options (a "merge conflict" error), rather than
+silently overwriting or silently doing nothing.
+
+Flags for scripted/CI use:
+    --non-interactive   Never prompt; every decision must come from a flag.
+    --yes / -y           Skip the "are you sure?" confirmation for --overwrite.
+    --dry-run             Parse and report what would happen; write nothing.
+    --db PATH             Target database path (default: public/content/library.sqlite).
+
+Examples:
+    # First import of a new fiction.
+    python3 scripts/import-novel.py
+
+    # Re-import after editing the source doc, keeping existing entries
+    # that weren't touched and overwriting ones that were:
+    python3 scripts/import-novel.py --merge --on-conflict overwrite
+
+    # Scripted full replace, e.g. in a deploy pipeline:
+    python3 scripts/import-novel.py --overwrite --yes --non-interactive --db public/content/library.sqlite
+"""
+
+import argparse
 from pathlib import Path
 from html import escape
 import json
@@ -9,7 +49,7 @@ import sys
 from docx import Document
 
 ROOT = Path(__file__).resolve().parents[1]
-DB = ROOT / "public/content/library.sqlite"
+DEFAULT_DB = ROOT / "public/content/library.sqlite"
 
 DEFAULT_CONFIG_PATH = ROOT / "scripts/novel.config.json"
 EXAMPLE_CONFIG_PATH = ROOT / "scripts/novel.config.example.json"
@@ -23,6 +63,51 @@ REQUIRED_CONFIG_KEYS = (
     "docx",
     "synopsis",
 )
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Import a fiction from a .docx source into library.sqlite.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    parser.add_argument(
+        "config",
+        nargs="?",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to novel.config.json (default: scripts/novel.config.json)",
+    )
+    parser.add_argument("--db", type=Path, default=DEFAULT_DB, help="Target database path")
+    conflict_group = parser.add_mutually_exclusive_group()
+    conflict_group.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Fully replace an existing fiction with this import",
+    )
+    conflict_group.add_argument(
+        "--merge",
+        action="store_true",
+        help="Keep an existing fiction; add/update entries per --on-conflict",
+    )
+    parser.add_argument(
+        "--on-conflict",
+        choices=("skip", "overwrite", "abort"),
+        default=None,
+        help="How to resolve entries that already exist during --merge",
+    )
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Never prompt; every decision must come from a flag",
+    )
+    parser.add_argument("-y", "--yes", action="store_true", help="Skip confirmation prompts")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Parse and report what would happen; write nothing",
+    )
+    return parser.parse_args()
 
 
 def load_config(path):
@@ -48,7 +133,9 @@ def load_config(path):
     return config
 
 
-config_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_CONFIG_PATH
+args = parse_args()
+config_path = args.config
+DB = args.db
 config = load_config(config_path)
 
 FICTION_ID = config["fiction_id"]
@@ -325,123 +412,146 @@ if not entries:
 
 
 
-if DB.exists():
-    backup_path = DB.with_name(DB.name + ".bak")
-    shutil.copy2(DB, backup_path)
-    print(f"Existing database found — backed up to {backup_path}")
+SCHEMA_DDL = """
+    CREATE TABLE IF NOT EXISTS fictions (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      author TEXT NOT NULL,
+      cover TEXT,
+      synopsis TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('ongoing', 'completed', 'hiatus'))
+    );
+
+    CREATE TABLE IF NOT EXISTS genres (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE
+    );
+
+    CREATE TABLE IF NOT EXISTS fiction_genres (
+      fiction_id TEXT NOT NULL,
+      genre_id TEXT NOT NULL,
+      PRIMARY KEY (fiction_id, genre_id),
+      FOREIGN KEY (fiction_id) REFERENCES fictions(id) ON DELETE CASCADE,
+      FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS tags (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE
+    );
+
+    CREATE TABLE IF NOT EXISTS fiction_tags (
+      fiction_id TEXT NOT NULL,
+      tag_id TEXT NOT NULL,
+      PRIMARY KEY (fiction_id, tag_id),
+      FOREIGN KEY (fiction_id) REFERENCES fictions(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS content_entries (
+      id TEXT PRIMARY KEY,
+      fiction_id TEXT NOT NULL,
+      type TEXT NOT NULL
+        CHECK (type IN (
+          'chapter',
+          'interlude',
+          'extra',
+          'afterword'
+        )),
+      number INTEGER,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      FOREIGN KEY (fiction_id)
+        REFERENCES fictions(id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_content_entries_fiction
+      ON content_entries (fiction_id);
+
+    CREATE INDEX IF NOT EXISTS idx_content_entries_fiction_number
+      ON content_entries (fiction_id, number);
+
+    CREATE TABLE IF NOT EXISTS indexes (
+      id TEXT PRIMARY KEY,
+      fiction_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      FOREIGN KEY (fiction_id)
+        REFERENCES fictions(id)
+        ON DELETE CASCADE,
+      UNIQUE (fiction_id, position)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_indexes_fiction_position
+      ON indexes (fiction_id, position);
+
+    CREATE TABLE IF NOT EXISTS index_entries (
+      index_id TEXT NOT NULL,
+      entry_id TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      label TEXT,
+      PRIMARY KEY (index_id, entry_id),
+      FOREIGN KEY (index_id)
+        REFERENCES indexes(id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (entry_id)
+        REFERENCES content_entries(id)
+        ON DELETE CASCADE,
+      UNIQUE (index_id, position)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_index_entries_index_position
+      ON index_entries (index_id, position);
+"""
+
+# The view has to be dropped/recreated on every run since its
+# definition can change across versions of this script, but that's
+# harmless -- a view holds no data of its own.
+VIEW_DDL = """
+    DROP VIEW IF EXISTS fiction_summary;
+
+    CREATE VIEW fiction_summary AS
+    SELECT
+      f.id,
+      f.title,
+      f.author,
+      f.cover,
+      f.synopsis,
+      f.status,
+      COUNT(c.id) AS entry_count
+    FROM fictions f
+    LEFT JOIN content_entries c
+      ON c.fiction_id = f.id
+    GROUP BY f.id;
+"""
 
 
-with sqlite3.connect(DB) as conn:
-    conn.execute("PRAGMA foreign_keys = ON")
-
-    conn.executescript("""
-        DROP VIEW IF EXISTS fiction_summary;
-
-        DROP TABLE IF EXISTS index_entries;
-        DROP TABLE IF EXISTS indexes;
-        DROP TABLE IF EXISTS content_entries;
-        DROP TABLE IF EXISTS chapters;
-
-        CREATE TABLE content_entries (
-          id TEXT PRIMARY KEY,
-          fiction_id TEXT NOT NULL,
-          type TEXT NOT NULL
-            CHECK (type IN (
-              'chapter',
-              'interlude',
-              'extra',
-              'afterword'
-            )),
-          number INTEGER,
-          title TEXT NOT NULL,
-          content TEXT NOT NULL,
-          FOREIGN KEY (fiction_id)
-            REFERENCES fictions(id)
-            ON DELETE CASCADE
-        );
-
-        CREATE INDEX idx_content_entries_fiction
-          ON content_entries (fiction_id);
-
-        CREATE INDEX idx_content_entries_fiction_number
-          ON content_entries (fiction_id, number);
-
-        CREATE TABLE indexes (
-          id TEXT PRIMARY KEY,
-          fiction_id TEXT NOT NULL,
-          title TEXT NOT NULL,
-          position INTEGER NOT NULL,
-          FOREIGN KEY (fiction_id)
-            REFERENCES fictions(id)
-            ON DELETE CASCADE,
-          UNIQUE (fiction_id, position)
-        );
-
-        CREATE INDEX idx_indexes_fiction_position
-          ON indexes (fiction_id, position);
-
-        CREATE TABLE index_entries (
-          index_id TEXT NOT NULL,
-          entry_id TEXT NOT NULL,
-          position INTEGER NOT NULL,
-          label TEXT,
-          PRIMARY KEY (index_id, entry_id),
-          FOREIGN KEY (index_id)
-            REFERENCES indexes(id)
-            ON DELETE CASCADE,
-          FOREIGN KEY (entry_id)
-            REFERENCES content_entries(id)
-            ON DELETE CASCADE,
-          UNIQUE (index_id, position)
-        );
-
-        CREATE INDEX idx_index_entries_index_position
-          ON index_entries (index_id, position);
-
-        CREATE VIEW fiction_summary AS
-        SELECT
-          f.id,
-          f.title,
-          f.author,
-          f.cover,
-          f.synopsis,
-          f.status,
-          COUNT(c.id) AS entry_count
-        FROM fictions f
-        LEFT JOIN content_entries c
-          ON c.fiction_id = f.id
-        GROUP BY f.id;
-    """)
-
+def wipe_fiction_content(conn, fiction_id):
+    """Delete everything belonging to one fiction. Scoped to
+    fiction_id throughout -- never touches other fictions' rows."""
     conn.execute(
-        "DELETE FROM fiction_genres WHERE fiction_id = ?",
-        (FICTION_ID,),
+        """
+        DELETE FROM index_entries
+        WHERE index_id IN (SELECT id FROM indexes WHERE fiction_id = ?)
+        """,
+        (fiction_id,),
     )
+    conn.execute("DELETE FROM indexes WHERE fiction_id = ?", (fiction_id,))
+    conn.execute("DELETE FROM content_entries WHERE fiction_id = ?", (fiction_id,))
+    conn.execute("DELETE FROM fiction_genres WHERE fiction_id = ?", (fiction_id,))
+    conn.execute("DELETE FROM fiction_tags WHERE fiction_id = ?", (fiction_id,))
+    conn.execute("DELETE FROM fictions WHERE id = ?", (fiction_id,))
 
-    conn.execute(
-        "DELETE FROM fiction_tags WHERE fiction_id = ?",
-        (FICTION_ID,),
-    )
 
-    conn.execute(
-        "DELETE FROM fictions WHERE id = ?",
-        (FICTION_ID,),
-    )
-
+def insert_fiction_content(conn, fiction_id, entries_to_insert):
     conn.execute(
         """
         INSERT INTO fictions
         (id, title, author, cover, synopsis, status)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (
-            FICTION_ID,
-            TITLE,
-            AUTHOR,
-            COVER,
-            SYNOPSIS,
-            STATUS,
-        ),
+        (fiction_id, TITLE, AUTHOR, COVER, SYNOPSIS, STATUS),
     )
 
     conn.executemany(
@@ -451,35 +561,26 @@ with sqlite3.connect(DB) as conn:
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         [
-            (
-                entry["id"],
-                entry["fiction_id"],
-                entry["type"],
-                entry["number"],
-                entry["title"],
-                entry["content"],
-            )
-            for entry in entries
+            (e["id"], e["fiction_id"], e["type"], e["number"], e["title"], e["content"])
+            for e in entries_to_insert
         ],
     )
 
+    write_indexes(conn, fiction_id)
+
+
+def write_indexes(conn, fiction_id):
+    """(Re)writes every index/index_entries row for this fiction from
+    the freshly parsed document structure. Always a full rebuild of
+    the table of contents, independent of whether individual entries
+    were skipped/overwritten/inserted -- their ids already exist in
+    content_entries by the time this runs."""
     for index in indexes:
-        index_id = (
-            f"{FICTION_ID}-index-{index['position'] + 1}"
-        )
+        index_id = f"{fiction_id}-index-{index['position'] + 1}"
 
         conn.execute(
-            """
-            INSERT INTO indexes
-            (id, fiction_id, title, position)
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                index_id,
-                FICTION_ID,
-                index["title"],
-                index["position"],
-            ),
+            "INSERT INTO indexes (id, fiction_id, title, position) VALUES (?, ?, ?, ?)",
+            (index_id, fiction_id, index["title"], index["position"]),
         )
 
         conn.executemany(
@@ -489,24 +590,198 @@ with sqlite3.connect(DB) as conn:
             VALUES (?, ?, ?, ?)
             """,
             [
-                (
-                    index_id,
-                    entry["id"],
-                    position,
-                    entry["title"],
-                )
-                for position, entry
-                in enumerate(index["entries"])
+                (index_id, entry["id"], position, entry["title"])
+                for position, entry in enumerate(index["entries"])
             ],
         )
+
+
+def resolve_conflicts(conflicting_titles, args):
+    if args.on_conflict:
+        return args.on_conflict
+
+    if args.non_interactive:
+        raise RuntimeError(
+            f"{len(conflicting_titles)} entr"
+            f"{'y' if len(conflicting_titles) == 1 else 'ies'} already "
+            "exist and --non-interactive was given. Pass "
+            "--on-conflict {skip,overwrite,abort} to resolve this without prompting."
+        )
+
+    print(f"{len(conflicting_titles)} entries already exist in this fiction:")
+    for title in conflicting_titles[:10]:
+        print(f"  - {title}")
+    if len(conflicting_titles) > 10:
+        print(f"  ... and {len(conflicting_titles) - 10} more")
+
+    while True:
+        choice = input("Resolve as [s]kip / [o]verwrite / [a]bort? ").strip().lower()
+        if choice in ("s", "skip"):
+            return "skip"
+        if choice in ("o", "overwrite"):
+            return "overwrite"
+        if choice in ("a", "abort"):
+            return "abort"
+        print("Please answer skip, overwrite, or abort.")
+
+
+with sqlite3.connect(DB) as conn:
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.executescript(SCHEMA_DDL)
+
+    existing = conn.execute(
+        "SELECT title, author FROM fictions WHERE id = ?", (FICTION_ID,)
+    ).fetchone()
+
+    if existing is None:
+        # Brand new fiction -- --overwrite/--merge are irrelevant here.
+        plan = "insert"
+    elif args.overwrite:
+        plan = "overwrite"
+    elif args.merge:
+        plan = "merge"
+    else:
+        existing_title, existing_author = existing
+        raise RuntimeError(
+            f"Fiction '{FICTION_ID}' already exists in the database "
+            f"(title: {existing_title!r}, author: {existing_author!r}) -- "
+            "merge conflict.\n"
+            "Pass --overwrite to fully replace it with this import, or "
+            "--merge to add/update its content without deleting entries "
+            "this import doesn't touch."
+        )
+
+    if plan == "overwrite" and existing is not None and not args.yes:
+        if args.non_interactive:
+            raise RuntimeError(
+                "--overwrite on an existing fiction requires --yes when "
+                "--non-interactive is set (refusing to overwrite silently)."
+            )
+        existing_title, _ = existing
+        confirm = input(
+            f"Overwrite existing fiction '{FICTION_ID}' ({existing_title!r})? [y/N] "
+        ).strip().lower()
+        if confirm not in ("y", "yes"):
+            raise RuntimeError("Aborted by user.")
+
+    conflict_resolution = None
+    conflicting_ids = set()
+
+    if plan == "merge":
+        existing_ids = {
+            row[0]
+            for row in conn.execute(
+                "SELECT id FROM content_entries WHERE fiction_id = ?", (FICTION_ID,)
+            )
+        }
+        new_ids = {e["id"] for e in entries}
+        conflicting_ids = existing_ids & new_ids
+
+        if conflicting_ids:
+            conflicting_titles = [e["title"] for e in entries if e["id"] in conflicting_ids]
+            conflict_resolution = resolve_conflicts(conflicting_titles, args)
+
+            if conflict_resolution == "abort":
+                raise RuntimeError(
+                    f"Aborted: {len(conflicting_ids)} entries already exist. "
+                    "Re-run with --on-conflict skip or --on-conflict overwrite."
+                )
+
+    if args.dry_run:
+        print("DRY RUN — no changes written")
+        print(f"Plan: {plan}")
+        print(f"Title: {TITLE}")
+        print(f"Author: {AUTHOR}")
+        print(f"Readable entries parsed: {len(entries)}")
+        print(f"Indexes parsed: {len(indexes)}")
+        if plan == "merge":
+            new_count = len(entries) - len(conflicting_ids)
+            print(f"  would insert: {new_count} new entries")
+            if conflicting_ids:
+                print(
+                    f"  would {conflict_resolution}: {len(conflicting_ids)} "
+                    "already-existing entries"
+                )
+        sys.exit(0)
+
+    if DB.exists():
+        backup_path = DB.with_name(DB.name + ".bak")
+        shutil.copy2(DB, backup_path)
+        print(f"Existing database found — backed up to {backup_path}")
+
+    conn.executescript(VIEW_DDL)
+
+    if plan in ("insert", "overwrite"):
+        if existing is not None:
+            wipe_fiction_content(conn, FICTION_ID)
+        insert_fiction_content(conn, FICTION_ID, entries)
+    else:  # merge
+        conn.execute(
+            """
+            UPDATE fictions
+            SET title = ?, author = ?, cover = ?, synopsis = ?, status = ?
+            WHERE id = ?
+            """,
+            (TITLE, AUTHOR, COVER, SYNOPSIS, STATUS, FICTION_ID),
+        )
+
+        to_insert = [e for e in entries if e["id"] not in conflicting_ids]
+        to_overwrite = (
+            [e for e in entries if e["id"] in conflicting_ids]
+            if conflict_resolution == "overwrite"
+            else []
+        )
+
+        conn.executemany(
+            """
+            INSERT INTO content_entries
+            (id, fiction_id, type, number, title, content)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (e["id"], e["fiction_id"], e["type"], e["number"], e["title"], e["content"])
+                for e in to_insert
+            ],
+        )
+
+        conn.executemany(
+            """
+            UPDATE content_entries
+            SET type = ?, number = ?, title = ?, content = ?
+            WHERE id = ?
+            """,
+            [
+                (e["type"], e["number"], e["title"], e["content"], e["id"])
+                for e in to_overwrite
+            ],
+        )
+
+        # Table of contents is always rebuilt fresh from the parsed
+        # document -- every entry it references already exists in
+        # content_entries by this point (inserted, overwritten, or
+        # left alone as a skip).
+        conn.execute(
+            """
+            DELETE FROM index_entries
+            WHERE index_id IN (SELECT id FROM indexes WHERE fiction_id = ?)
+            """,
+            (FICTION_ID,),
+        )
+        conn.execute("DELETE FROM indexes WHERE fiction_id = ?", (FICTION_ID,))
+        write_indexes(conn, FICTION_ID)
 
     conn.commit()
 
 
 print("IMPORT OK")
+print(f"Plan: {plan}")
 print(f"Title: {TITLE}")
 print(f"Author: {AUTHOR}")
 print(f"Readable entries: {len(entries)}")
+if plan == "merge":
+    print(f"  new: {len(entries) - len(conflicting_ids)}")
+    if conflicting_ids:
+        print(f"  {conflict_resolution}: {len(conflicting_ids)}")
 print(f"Indexes: {len(indexes)}")
 
 for index in indexes:

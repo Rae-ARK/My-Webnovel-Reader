@@ -17,6 +17,16 @@ vi.mock('../../../config/site', () => ({
   ),
 }))
 
+vi.mock('../../../config/author', () => ({
+  default: {
+    name: 'Author Name',
+    avatarSquare: '/images/profile-square.png',
+    avatarFull: '/images/profile-full.png',
+    bio: 'This author has not written a bio yet.',
+    social: [],
+  },
+}))
+
 import SiteFooter from '../SiteFooter.vue'
 
 const mountOptions = {
@@ -33,7 +43,6 @@ const mountOptions = {
 const baseConfig = {
   site: {
     title: 'Web Novel Reader',
-    author: 'Author Name',
     description: 'A read-only web novel library.',
     icon: '/icon.svg',
     about: 'Generic template about copy.',
@@ -61,6 +70,12 @@ describe('SiteFooter', () => {
 
     // About boilerplate
     expect(wrapper.text()).toContain('Generic template about copy.')
+
+    // Author byline, sourced from the author config module
+    expect(wrapper.text()).toContain('Author Name')
+    expect(wrapper.find('img.footer-author-avatar').attributes('src')).toBe(
+      '/images/profile-square.png',
+    )
 
     // Only the default GitHub social link, nothing else
     expect(wrapper.text()).toContain('GitHub')

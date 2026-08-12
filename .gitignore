@@ -1,6 +1,7 @@
 *.patch
 *.docx
 *.sqlite
+*.png
 
 node_modules
 

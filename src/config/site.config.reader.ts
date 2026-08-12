@@ -1,9 +1,12 @@
 export default {
   site: {
-    title: 'Web Novel Reader',
-    author: 'Author Name',
+    title: 'Horizon ARK Studio',
     description: 'A read-only web novel library.',
-    // icon: exact loading convention decided in Stage 2; defaults to '/icon.svg'.
+    // Site logo/favicon. Drop the real file at public/images/logo.png
+    // (see docs/web-novel-reader-architecture.md "Author Images") —
+    // main.ts derives the favicon MIME type from this path's
+    // extension at runtime, so any raster or vector format works.
+    icon: '/images/logo.png',
     // about: defaults to generic template copy if omitted.
   },
   content: {

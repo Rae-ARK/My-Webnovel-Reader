@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import site from '../../config/site'
+import author from '../../config/author'
 import { useThemeStore, type Theme } from '../../stores/theme.store'
 import Button from '../ui/Button.vue'
 
@@ -50,6 +51,16 @@ function platformLabel(platform: string): string {
         </h2>
         <p class="footer-about">
           {{ site.site.about }}
+        </p>
+        <p class="footer-author">
+          <img
+            :src="author.avatarSquare"
+            alt=""
+            class="footer-author-avatar"
+            width="24"
+            height="24"
+          >
+          {{ author.name }}
         </p>
       </section>
 
@@ -202,10 +213,28 @@ function platformLabel(platform: string): string {
 }
 
 .footer-about {
-  margin: 0;
+  margin: 0 0 0.75rem;
   color: var(--text-muted);
   font-size: 0.9rem;
   line-height: 1.6;
+}
+
+.footer-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.footer-author-avatar {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .footer-theme-buttons {
