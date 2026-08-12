@@ -1,4 +1,4 @@
-# Web Novel Reader
+# Horizon ARK Studio
 
 A novel deserves a home that gets out of its way.
 
