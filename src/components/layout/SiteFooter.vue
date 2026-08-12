@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import site from '../../config/site'
 import author from '../../config/author'
-import { useThemeStore, type Theme } from '../../stores/theme.store'
-import Button from '../ui/Button.vue'
-
-const themeStore = useThemeStore()
-
-const themeOptions: Theme[] = ['light', 'cream', 'dark']
 
 const contactHref = `mailto:${site.contact.email}?subject=${encodeURIComponent(
   site.contact.subjectTemplate,
@@ -62,28 +56,6 @@ function platformLabel(platform: string): string {
           >
           {{ author.name }}
         </p>
-      </section>
-
-      <section
-        class="footer-column"
-        aria-labelledby="footer-theme-heading"
-      >
-        <h2
-          id="footer-theme-heading"
-          class="footer-heading"
-        >
-          Theme
-        </h2>
-        <div class="footer-theme-buttons">
-          <Button
-            v-for="theme in themeOptions"
-            :key="theme"
-            :variant="themeStore.theme === theme ? 'primary' : 'secondary'"
-            @click="themeStore.setTheme(theme)"
-          >
-            {{ theme }}
-          </Button>
-        </div>
       </section>
 
       <section
@@ -237,12 +209,6 @@ function platformLabel(platform: string): string {
   height: 1.5rem;
   border-radius: 50%;
   object-fit: cover;
-}
-
-.footer-theme-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
 }
 
 .footer-links {

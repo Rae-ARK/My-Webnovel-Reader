@@ -12,7 +12,6 @@ import IconButton from '../components/ui/IconButton.vue'
 import Slider from '../components/ui/Slider.vue'
 import { useReaderStore } from '../stores/reader.store'
 import { useSettingsStore } from '../stores/settings.store'
-import { useThemeStore, type Theme } from '../stores/theme.store'
 import type { Bookmark } from '../models/user-state'
 import author from '../config/author'
 
@@ -21,7 +20,6 @@ const router = useRouter()
 
 const reader = useReaderStore()
 const settings = useSettingsStore()
-const themeStore = useThemeStore()
 
 const fictionId = computed(() => String(route.params.fictionId))
 const chapterId = computed(() => String(route.params.chapterId))
@@ -32,9 +30,13 @@ const bookmarksLoading = ref(false)
 const bookmarkError = ref<string | null>(null)
 const settingsLoaded = ref(false)
 
-const fontSize = ref(18)
-const lineHeight = ref(1.7)
-const readingWidth = ref(48)
+const DEFAULT_FONT_SIZE = 18
+const DEFAULT_LINE_HEIGHT = 1.7
+const DEFAULT_READING_WIDTH = 48
+
+const fontSize = ref(DEFAULT_FONT_SIZE)
+const lineHeight = ref(DEFAULT_LINE_HEIGHT)
+const readingWidth = ref(DEFAULT_READING_WIDTH)
 
 const fontSizeOptions = {
   min: 14,
@@ -54,7 +56,12 @@ const readingWidthOptions = {
   step: 2,
 }
 
-const themeOptions: Theme[] = ['light', 'cream', 'dark']
+const isDefaultPreferences = computed(
+  () =>
+    fontSize.value === DEFAULT_FONT_SIZE &&
+    lineHeight.value === DEFAULT_LINE_HEIGHT &&
+    readingWidth.value === DEFAULT_READING_WIDTH,
+)
 
 const entryEyebrow = computed(() => {
   const entry = reader.current?.entry
@@ -180,9 +187,9 @@ const loadSettings = async () => {
   const storedReadingWidth =
     await settings.get<number>('reader.width')
 
-  fontSize.value = storedFontSize ?? 18
-  lineHeight.value = storedLineHeight ?? 1.7
-  readingWidth.value = storedReadingWidth ?? 48
+  fontSize.value = storedFontSize ?? DEFAULT_FONT_SIZE
+  lineHeight.value = storedLineHeight ?? DEFAULT_LINE_HEIGHT
+  readingWidth.value = storedReadingWidth ?? DEFAULT_READING_WIDTH
 
   settingsLoaded.value = true
 }
@@ -341,6 +348,12 @@ const handleReadingWidthChange = async (value: number) => {
   }
 }
 
+const resetPreferences = async () => {
+  await handleFontSizeChange(DEFAULT_FONT_SIZE)
+  await handleLineHeightChange(DEFAULT_LINE_HEIGHT)
+  await handleReadingWidthChange(DEFAULT_READING_WIDTH)
+}
+
 onMounted(async () => {
   window.addEventListener('scroll', handleScroll, {
     passive: true,
@@ -408,13 +421,13 @@ onBeforeUnmount(() => {
           </RouterLink>
 
           <div class="reader__actions">
-            <IconButton
-              label="Toggle reader settings"
+            <Button
+              variant="secondary"
               :aria-expanded="showControls"
               @click="showControls = !showControls"
             >
-              Aa
-            </IconButton>
+              Reader preferences
+            </Button>
 
             <Button
               variant="secondary"
@@ -428,65 +441,60 @@ onBeforeUnmount(() => {
         <section
           v-if="showControls"
           class="reader-controls"
-          aria-label="Reader settings"
+          aria-label="Reader preferences"
         >
           <div class="reader-controls__header">
-            <h2>Reader settings</h2>
+            <h2>Reader preferences</h2>
 
-            <Button
-              variant="ghost"
-              @click="showControls = false"
-            >
-              Close
-            </Button>
-          </div>
-
-          <Slider
-            :model-value="fontSize"
-            label="Font size"
-            :min="fontSizeOptions.min"
-            :max="fontSizeOptions.max"
-            :step="fontSizeOptions.step"
-            @update:model-value="handleFontSizeChange"
-          />
-
-          <Slider
-            :model-value="lineHeight"
-            label="Line height"
-            :min="lineHeightOptions.min"
-            :max="lineHeightOptions.max"
-            :step="lineHeightOptions.step"
-            @update:model-value="handleLineHeightChange"
-          />
-
-          <Slider
-            :model-value="readingWidth"
-            label="Reading width"
-            :min="readingWidthOptions.min"
-            :max="readingWidthOptions.max"
-            :step="readingWidthOptions.step"
-            @update:model-value="handleReadingWidthChange"
-          />
-
-          <div class="reader-controls__themes">
-            <span class="reader-controls__label">
-              Theme
-            </span>
-
-            <div class="reader-controls__theme-buttons">
+            <div class="reader-controls__header-actions">
               <Button
-                v-for="theme in themeOptions"
-                :key="theme"
-                :variant="
-                  themeStore.theme === theme
-                    ? 'primary'
-                    : 'secondary'
-                "
-                @click="themeStore.setTheme(theme)"
+                variant="ghost"
+                :disabled="isDefaultPreferences"
+                @click="resetPreferences"
               >
-                {{ theme }}
+                Reset to default
+              </Button>
+
+              <Button
+                variant="ghost"
+                @click="showControls = false"
+              >
+                Close
               </Button>
             </div>
+          </div>
+
+          <div
+            class="reader-controls__group"
+            role="group"
+            aria-label="Text display"
+          >
+            <Slider
+              :model-value="fontSize"
+              label="Font size"
+              :min="fontSizeOptions.min"
+              :max="fontSizeOptions.max"
+              :step="fontSizeOptions.step"
+              @update:model-value="handleFontSizeChange"
+            />
+
+            <Slider
+              :model-value="lineHeight"
+              label="Line height"
+              :min="lineHeightOptions.min"
+              :max="lineHeightOptions.max"
+              :step="lineHeightOptions.step"
+              @update:model-value="handleLineHeightChange"
+            />
+
+            <Slider
+              :model-value="readingWidth"
+              label="Reading width"
+              :min="readingWidthOptions.min"
+              :max="readingWidthOptions.max"
+              :step="readingWidthOptions.step"
+              @update:model-value="handleReadingWidthChange"
+            />
           </div>
         </section>
 
@@ -802,21 +810,15 @@ onBeforeUnmount(() => {
   font-size: 1rem;
 }
 
-.reader-controls__themes {
-  display: grid;
-  gap: 0.625rem;
-}
-
-.reader-controls__label {
-  color: var(--text);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.reader-controls__theme-buttons {
+.reader-controls__header-actions {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
+}
+
+.reader-controls__group {
+  display: grid;
+  gap: 1.25rem;
 }
 
 .reader__header h1 {
