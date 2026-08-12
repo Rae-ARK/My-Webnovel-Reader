@@ -1,7 +1,6 @@
 *.patch
 *.docx
 *.sqlite
-*.png
 
 node_modules
 
@@ -38,6 +37,8 @@ dist/
 public/content/covers/
 public/content/library.sqlite
 public/content/library.sqlite.demo-backup
+public/images/profile-full.png
+public/images/profile-square.png
 scripts/novel.config.json
 
 # Local Python virtual environments

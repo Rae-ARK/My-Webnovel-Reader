@@ -128,18 +128,18 @@ onMounted(async () => {
 
 <style scoped>
 .hero {
-  padding-block: 5rem 4rem;
+  padding-block: 3rem 2.5rem;
 }
 
 .hero h1 {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.65rem;
   max-width: 48rem;
   margin: 0;
   color: var(--text);
-  font-size: clamp(1.5rem, 6vw, 5rem);
+  font-size: clamp(1.5rem, 5vw, 2.75rem);
   line-height: 1;
   white-space: nowrap;
 }
@@ -148,8 +148,8 @@ onMounted(async () => {
   flex-shrink: 0;
   display: block;
   width: auto;
-  height: clamp(2rem, 6vw, 3.5rem);
-  max-width: clamp(2rem, 6vw, 3.5rem);
+  height: clamp(1.75rem, 5vw, 2.25rem);
+  max-width: clamp(1.75rem, 5vw, 2.25rem);
   object-fit: contain;
   border-radius: var(--radius-md, 0.5rem);
 }
@@ -158,6 +158,7 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  margin: 0 0 0.5rem;
 }
 
 .author-avatar {
@@ -170,10 +171,10 @@ onMounted(async () => {
 
 .hero > p:not(.eyebrow) {
   max-width: 42rem;
-  margin: 1.25rem 0 1.5rem;
+  margin: 0.6rem 0 1.1rem;
   color: var(--text-muted);
-  font-size: 1.1rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .button {
@@ -214,13 +215,13 @@ onMounted(async () => {
   container-type: inline-size;
   container-name: continue-list;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 30rem));
   gap: 1rem;
 }
 
 .library-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 18rem));
   gap: 1.25rem;
 }
 
