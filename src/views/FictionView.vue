@@ -238,6 +238,8 @@ function scrollIndex(indexId: string, direction: 1 | -1) {
 
 <style scoped>
 .fiction-page {
+  container-type: inline-size;
+  container-name: fiction-page;
   padding-block: 3rem 5rem;
 }
 
@@ -250,7 +252,7 @@ function scrollIndex(indexId: string, direction: 1 | -1) {
 
 .fiction-detail__cover {
   display: grid;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 2 / 3;
   place-items: center;
   overflow: hidden;
   color: var(--text-on-accent);
@@ -370,8 +372,14 @@ function scrollIndex(indexId: string, direction: 1 | -1) {
 }
 
 .fiction-index__nav {
-  display: flex;
+  display: none;
   gap: 0.4rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fiction-index__nav {
+    display: flex;
+  }
 }
 
 .fiction-index__nav-button {
@@ -420,7 +428,7 @@ function scrollIndex(indexId: string, direction: 1 | -1) {
   border-color: var(--accent);
 }
 
-@media (max-width: 700px) {
+@container fiction-page (max-width: 700px) {
   .fiction-detail {
     grid-template-columns: 1fr;
   }
@@ -428,10 +436,6 @@ function scrollIndex(indexId: string, direction: 1 | -1) {
   .fiction-detail__cover {
     width: min(18rem, 100%);
     margin-inline: auto;
-  }
-
-  .fiction-index__nav {
-    display: none;
   }
 }
 </style>

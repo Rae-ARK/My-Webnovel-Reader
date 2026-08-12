@@ -88,7 +88,7 @@ defineProps<{
 
 .fiction-card__cover {
   display: grid;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 2 / 3;
   place-items: center;
   overflow: hidden;
   color: var(--text-on-accent);

@@ -113,7 +113,7 @@ defineProps<{
   text-decoration: none;
 }
 
-@media (max-width: 32rem) {
+@container continue-list (max-width: 32rem) {
   .continue-card {
     grid-template-columns: 5rem 1fr;
   }

@@ -186,6 +186,8 @@ onMounted(async () => {
 }
 
 .continue-list {
+  container-type: inline-size;
+  container-name: continue-list;
   display: grid;
   gap: 1rem;
 }
