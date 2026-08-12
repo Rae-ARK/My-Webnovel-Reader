@@ -3,10 +3,10 @@ import { z } from 'zod'
 /**
  * Schema for `site.config.reader.ts`.
  *
- * This is Stage 1 of the fiction-page redesign plan: it only adds
- * fields and validation. Nothing in the app reads the new fields yet
- * (`icon`, `about`, `contact`, `social`, `advertising`, `legal`) —
- * that wiring happens in later stages.
+ * Added in Stage 1 of the fiction-page redesign plan and validated at
+ * load time. `icon` and `site.title` are wired up in Stage 2; `about`,
+ * `contact`, `social`, `advertising`, and `support.issuesUrl` are
+ * wired up in Stage 3's footer. `legal` is wired up in Stage 4.
  *
  * Defaults are intentionally template-generic so an unconfigured
  * clone still validates and boots; an author is expected to override
@@ -81,11 +81,23 @@ export const siteConfigSchema = z.object({
   ]),
 
   /**
-   * Undefined by default — nothing reads this yet. Shape (raw HTML
-   * embed vs. provider slot ID) is finalized in Stage 3 when
-   * something actually consumes it.
+   * Undefined by default. Stage 3's Advertising footer column only
+   * renders when this is set. Shape is a raw author-authored HTML/JS
+   * embed, since this is a self-hosted, single-author site and the
+   * content is trusted config, not user input.
    */
-  advertising: z.unknown().optional(),
+  advertising: z
+    .object({
+      html: z.string().min(1, 'advertising.html must not be empty'),
+    })
+    .optional(),
+
+  /** Where Stage 3's "Report an Issue" footer column links. */
+  support: z
+    .object({
+      issuesUrl: z.url('support.issuesUrl must be a valid URL'),
+    })
+    .default({ issuesUrl: `${TEMPLATE_REPO_URL}/issues` }),
 
   /** Placeholder copy for the legal routes added in Stage 4. */
   legal: z

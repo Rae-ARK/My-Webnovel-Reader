@@ -36,7 +36,14 @@ export default {
   //   { platform: 'twitter', url: 'https://x.com/your-handle' },
   // ],
 
-  // advertising: left unset — undefined by default, nothing reads it yet.
+  // advertising: left unset by default, so the footer's Advertising
+  // column doesn't render at all. Set a raw HTML/script embed to show
+  // it, e.g.:
+  // advertising: { html: '<div class="ad-slot">...</div>' },
+
+  // support: defaults to the template repo's GitHub Issues if
+  // omitted. Point this at your own repo/issue tracker, e.g.:
+  // support: { issuesUrl: 'https://github.com/your-name/your-repo/issues' },
 
   // legal: defaults to generic placeholder copy for all three fields
   // if omitted. Override any of privacyPolicy / termsAndConditions /

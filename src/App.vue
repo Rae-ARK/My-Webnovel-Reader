@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import site from './config/site'
 import { useThemeStore } from './stores/theme.store'
+import SiteFooter from './components/layout/SiteFooter.vue'
 
 const themeStore = useThemeStore()
 
@@ -39,4 +40,6 @@ onMounted(() => {
   <main>
     <RouterView />
   </main>
+
+  <SiteFooter />
 </template>
