@@ -50,10 +50,28 @@ defineProps<{
 </template>
 
 <style scoped>
+/* ContinueReadingCard.vue — <style scoped> block changes
+
+   Problem: the cover box has a fixed `aspect-ratio: 2/3` and the
+   card's grid uses `align-items: start`, so the cover's height is
+   derived only from its own (7rem) width — it doesn't grow to match
+   however tall the text column ends up being, leaving a gap at the
+   bottom of the card.
+
+   Fix: drop the aspect-ratio and let the cover stretch to the full
+   row height (grid rows stretch by default — just remove the
+   `align-items: start` override that was opting out of it), so the
+   image always touches both the top and bottom of the card. The
+   column width goes from 7rem -> 9rem (and 5rem -> 6.5rem at the
+   narrow container-query breakpoint) so the now-taller box doesn't
+   end up looking too narrow/cropped once it's stretched. */
+
 .continue-card {
   display: grid;
-  grid-template-columns: 7rem 1fr;
-  align-items: start;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  /* was: align-items: start; — removing it lets both grid columns
+     stretch to the row's full height (the grid default), which is
+     what makes the cover reach the bottom of the card. */
   overflow: hidden;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -61,8 +79,10 @@ defineProps<{
 }
 
 .continue-card__cover {
-  display: grid;
-  aspect-ratio: 2 / 3;
+  display: block;
+  /* was: aspect-ratio: 2 / 3; — removed so height comes from the
+     stretched grid row instead of being derived from the width. */
+  height: 100%;
   place-items: center;
   overflow: hidden;
   color: var(--text-on-accent);
@@ -71,7 +91,10 @@ defineProps<{
   font-weight: 700;
 }
 
+/* .continue-card__cover img is unchanged — width/height: 100% +
+   object-fit: cover already fills whatever box it's given. */
 .continue-card__cover img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -81,42 +104,14 @@ defineProps<{
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: center;   /* add this line */
   gap: 0.4rem;
   padding: 1rem;
 }
 
-.continue-card__content h2 {
-  margin: 0;
-  color: var(--text);
-  font-size: 1.2rem;
-}
-
-.continue-card__author {
-  margin: 0;
-  color: var(--text-muted);
-}
-
-.continue-card__position {
-  margin: 0 0 0.5rem;
-  color: var(--text-subtle);
-  font-size: 0.8rem;
-}
-
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.9rem;
-  color: var(--text-on-accent);
-  background: var(--accent);
-  border-radius: var(--radius-md, 0.5rem);
-  text-decoration: none;
-}
-
 @container continue-list (max-width: 32rem) {
   .continue-card {
-    grid-template-columns: 5rem 1fr;
+    grid-template-columns: 6.5rem 1fr;
   }
 }
 </style>
