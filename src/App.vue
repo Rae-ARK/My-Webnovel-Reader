@@ -12,11 +12,28 @@ onMounted(() => {
 </script>
 
 <template>
-  <SiteHeader />
+  <div class="app-shell">
+    <SiteHeader />
 
-  <main>
-    <RouterView />
-  </main>
+    <!-- Each view owns its own <main> landmark, so this is a plain
+         wrapper (not another <main>) — it exists purely to grow and
+         push SiteFooter to the bottom on short pages. -->
+    <div class="app-content">
+      <RouterView />
+    </div>
 
-  <SiteFooter />
+    <SiteFooter />
+  </div>
 </template>
+
+<style scoped>
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-content {
+  flex: 1 0 auto;
+}
+</style>

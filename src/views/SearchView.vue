@@ -69,16 +69,24 @@ function entryLabel(result: {
 </script>
 
 <template>
-  <section class="search-view">
-    <header>
+  <main class="shell search-page">
+    <header class="page-header">
+      <p class="eyebrow">
+        Search
+      </p>
       <h1>Search</h1>
-      <p>Find a fiction, chapter, or piece of content.</p>
+      <p class="page-description">
+        Find a fiction, chapter, or piece of content.
+      </p>
     </header>
 
-    <form @submit.prevent="search">
+    <form
+      class="search-form"
+      @submit.prevent="search"
+    >
       <label for="search-query">Search novels</label>
 
-      <div>
+      <div class="search-form__row">
         <input
           id="search-query"
           v-model="query"
@@ -87,7 +95,10 @@ function entryLabel(result: {
           autocomplete="off"
         >
 
-        <button type="submit">
+        <button
+          class="button"
+          type="submit"
+        >
           Search
         </button>
       </div>
@@ -95,31 +106,176 @@ function entryLabel(result: {
 
     <p
       v-if="hasSearched"
+      class="result-count"
       aria-live="polite"
     >
       {{ resultCountLabel }}
     </p>
 
-    <section v-if="hasSearched && results.length > 0">
-      <ul>
-        <li
-          v-for="result in results"
-          :key="result.entryId"
-        >
-          <button
-            type="button"
-            @click="openResult(result.fictionId, result.entryId)"
-          >
-            <strong>{{ result.fictionTitle }}</strong>
-            <span>{{ entryLabel(result) }}</span>
-            <span>{{ result.snippet }}</span>
-          </button>
-        </li>
-      </ul>
+    <section
+      v-if="hasSearched && results.length > 0"
+      class="results-list"
+      aria-label="Search results"
+    >
+      <button
+        v-for="result in results"
+        :key="result.entryId"
+        type="button"
+        class="result-card"
+        @click="openResult(result.fictionId, result.entryId)"
+      >
+        <strong class="result-card__title">{{ result.fictionTitle }}</strong>
+        <span class="result-card__entry">{{ entryLabel(result) }}</span>
+        <span class="result-card__snippet">{{ result.snippet }}</span>
+      </button>
     </section>
 
-    <p v-else-if="hasSearched">
-      No results found.
-    </p>
-  </section>
+    <div
+      v-else-if="hasSearched"
+      class="state-message"
+    >
+      <h2>No results found</h2>
+      <p>Try a different word or phrase.</p>
+    </div>
+  </main>
 </template>
+
+<style scoped>
+.search-page {
+  padding-block: 3rem 5rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.page-description {
+  max-width: 42rem;
+  margin: 0.75rem 0 0;
+  color: var(--text-muted);
+}
+
+.search-form {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 1rem);
+}
+
+.search-form > label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.search-form__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.search-form__row input {
+  flex: 1 1 16rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.85rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 0.5rem);
+}
+
+.search-form__row input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.25rem;
+  color: var(--text-on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md, 0.5rem);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--accent-hover);
+}
+
+.result-count {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.results-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.result-card {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1rem 1.1rem;
+  color: inherit;
+  text-align: left;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 1rem);
+  cursor: pointer;
+}
+
+.result-card:hover,
+.result-card:focus-visible {
+  border-color: var(--accent);
+}
+
+.result-card__title {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.result-card__entry {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.result-card__snippet {
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state-message {
+  padding: 2rem;
+  color: var(--text-muted);
+  text-align: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 1rem);
+}
+
+.state-message h2 {
+  margin: 0 0 0.35rem;
+  color: var(--text);
+}
+
+.state-message p {
+  margin: 0;
+}
+</style>

@@ -100,7 +100,7 @@ describe('SearchView', () => {
 
     await wrapper.find('input').setValue('tomorrow')
     await wrapper.find('form').trigger('submit')
-    await wrapper.find('li button').trigger('click')
+    await wrapper.find('button.result-card').trigger('click')
 
     expect(mocks.push).toHaveBeenCalledWith(
       '/read/fiction-1/entry-3',
@@ -113,7 +113,7 @@ describe('SearchView', () => {
     await wrapper.find('input').setValue('missing')
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.text()).toContain('No results found.')
+    expect(wrapper.text()).toContain('No results found')
   })
 
   it('clears the search when submitted empty', async () => {

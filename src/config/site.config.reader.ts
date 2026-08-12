@@ -4,8 +4,9 @@ export default {
     description: 'A read-only web novel library.',
     // Site logo/favicon. Drop the real file at public/images/logo.png
     // (see docs/web-novel-reader-architecture.md "Author Images") —
-    // main.ts derives the favicon MIME type from this path's
-    // extension at runtime, so any raster or vector format works.
+    // it can be any aspect ratio; main.ts letterboxes it into a
+    // square before using it as the browser tab favicon, so a wide
+    // wordmark-style logo won't render stretched/cropped in the tab.
     icon: '/images/logo.png',
     // about: defaults to generic template copy if omitted.
   },

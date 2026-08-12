@@ -14,23 +14,36 @@ import site from './config/site'
 // file's real config.
 document.title = site.site.title
 
-const FAVICON_MIME_TYPES: Record<string, string> = {
-  svg: 'image/svg+xml',
-  png: 'image/png',
-  ico: 'image/x-icon',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  webp: 'image/webp',
+// Browsers render <link rel="icon"> into a square tab slot and will
+// stretch or crop a non-square source image to fill it — so if
+// site.config.reader.ts's `icon` isn't itself square (e.g. a wide
+// wordmark logo), the browser tab icon comes out distorted even
+// though the same file looks fine elsewhere (the header/hero <img>
+// tags constrain it with height + object-fit: contain instead).
+//
+// Rather than requiring every author to pre-crop their logo to an
+// exact square, wrap whatever they point `icon` at in a small square
+// SVG that letterboxes it (preserveAspectRatio="xMidYMid meet"
+// scales it down to fit and centers it, adding transparent padding
+// on the short axis instead of stretching or cropping). This works
+// for any source format — raster or vector — since SVG's <image>
+// element can embed either.
+function buildSquareFaviconHref(iconPath: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">` +
+    `<image href="${iconPath}" x="0" y="0" width="64" height="64" ` +
+    `preserveAspectRatio="xMidYMid meet" /></svg>`
+
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
-const faviconExtension = site.site.icon.split('.').pop()?.toLowerCase() ?? ''
 const faviconLink =
   document.querySelector<HTMLLinkElement>('link[rel="icon"]') ??
   document.head.appendChild(document.createElement('link'))
 
 faviconLink.setAttribute('rel', 'icon')
-faviconLink.setAttribute('type', FAVICON_MIME_TYPES[faviconExtension] ?? 'image/png')
-faviconLink.setAttribute('href', site.site.icon)
+faviconLink.setAttribute('type', 'image/svg+xml')
+faviconLink.setAttribute('href', buildSquareFaviconHref(site.site.icon))
 
 const router = createRouter({
   history: createWebHistory(),
