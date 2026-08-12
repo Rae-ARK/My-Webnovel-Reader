@@ -37,7 +37,7 @@ function platformLabel(platform: string): string {
 </script>
 
 <template>
-  <footer class="site-footer">
+  <footer class="site-footer glass-surface">
     <div class="shell footer-grid">
       <section
         class="footer-column"
@@ -193,8 +193,10 @@ function platformLabel(platform: string): string {
 
 <style scoped>
 .site-footer {
-  border-top: 1px solid var(--border);
-  background: var(--bg-elevated);
+  /* Color comes from the .glass-surface utility (border-color), so
+     this only sets the edge's width/style. */
+  border-top-width: 1px;
+  border-top-style: solid;
 }
 
 .footer-grid {

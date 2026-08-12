@@ -239,6 +239,28 @@ const options = [
           <Spinner size="lg" />
         </div>
       </section>
+
+      <section>
+        <h2>Surfaces (Stage 6 — glass tokens)</h2>
+        <p class="description">
+          Chrome-only frosted glass. Reserved for the header/nav,
+          sidebar quick-actions card, and footer top edge — never
+          reading content. Simulate
+          <code>prefers-reduced-transparency: reduce</code> in
+          DevTools to confirm the opaque fallback below.
+        </p>
+
+        <div class="glass-demo">
+          <div class="glass-demo-swatch glass-surface">
+            <span>.glass-surface</span>
+            <span class="value-preview">blur + translucent bg</span>
+          </div>
+          <div class="glass-demo-swatch">
+            <span>Plain surface</span>
+            <span class="value-preview">for comparison</span>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -343,6 +365,43 @@ h3 {
   display: flex;
   justify-content: flex-end;
   margin-top: 1.25rem;
+}
+
+.glass-demo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+  /* Busy backdrop so the glass swatch's blur/translucency is
+     actually visible against something, rather than a flat color. */
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--accent) 0 12px,
+    var(--border) 12px 24px
+  );
+  border-radius: var(--radius-lg, 1rem);
+}
+
+.glass-demo-swatch {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.5rem;
+  color: var(--text);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lg, 1rem);
+}
+
+.glass-demo-swatch:not(.glass-surface) {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+code {
+  padding: 0.1rem 0.35rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm, 0.25rem);
+  font-size: 0.85em;
 }
 
 @media (max-width: 700px) {

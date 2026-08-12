@@ -29,6 +29,13 @@
 
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
   --shadow-md: 0 4px 12px rgb(0 0 0 / 8%);
+
+  /* Frosted-glass chrome tokens (header/nav, sidebar quick-actions
+     card, footer top edge only — never over reading content). Kept
+     restrained: a still-legible translucent surface, not "liquid
+     glass". See docs/fiction-page-redesign-plan.md, Stage 6. */
+  --glass-bg: rgb(248 250 252 / 72%);
+  --glass-border: rgb(219 226 234 / 60%);
 }
 
 [data-theme='cream'] {
@@ -58,6 +65,9 @@
 
   --shadow-sm: 0 1px 2px rgb(62 43 25 / 5%);
   --shadow-md: 0 4px 12px rgb(62 43 25 / 8%);
+
+  --glass-bg: rgb(251 247 239 / 72%);
+  --glass-border: rgb(217 203 183 / 60%);
 }
 
 [data-theme='dark'] {
@@ -87,12 +97,18 @@
 
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 25%);
   --shadow-md: 0 4px 12px rgb(0 0 0 / 30%);
+
+  --glass-bg: rgb(25 28 35 / 72%);
+  --glass-border: rgb(52 58 71 / 60%);
 }
 
 :root {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+
+  /* Restrained blur radius, shared across themes. */
+  --glass-blur: 8px;
 }
 
 * {
@@ -154,4 +170,44 @@ textarea:focus-visible {
   border-radius: var(--radius-md);
   background: var(--accent);
   color: var(--text-on-accent);
+}
+
+/*
+ * Frosted-glass chrome surface (Stage 6).
+ *
+ * Reserved for chrome only: header/nav, the sidebar quick-actions
+ * card (once built), and the footer's top edge — never the synopsis,
+ * reading surface, or other large body-text areas, where blur over
+ * text hurts legibility and costs more on lower-end devices.
+ *
+ * Solid, fully-opaque `--bg-elevated` is the default/fallback so the
+ * component works correctly with no extra markup even before this
+ * rule's conditions are met. Components using this class should not
+ * also declare their own `background` or border color — set border
+ * width/style only (e.g. `border-bottom-width` + `border-bottom-style`)
+ * and let this class own the color, so the reduced-transparency and
+ * no-backdrop-filter fallbacks stay correct everywhere it's used.
+ */
+.glass-surface {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass-surface {
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+}
+
+/* Explicit opt-out always wins, regardless of backdrop-filter support. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-surface {
+    background: var(--bg-elevated);
+    border-color: var(--border);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
