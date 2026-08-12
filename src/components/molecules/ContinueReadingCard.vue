@@ -53,6 +53,7 @@ defineProps<{
 .continue-card {
   display: grid;
   grid-template-columns: 7rem 1fr;
+  align-items: start;
   overflow: hidden;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -61,7 +62,7 @@ defineProps<{
 
 .continue-card__cover {
   display: grid;
-  min-height: 10rem;
+  aspect-ratio: 2 / 3;
   place-items: center;
   overflow: hidden;
   color: var(--text-on-accent);
@@ -116,10 +117,6 @@ defineProps<{
 @container continue-list (max-width: 32rem) {
   .continue-card {
     grid-template-columns: 5rem 1fr;
-  }
-
-  .continue-card__cover {
-    min-height: 8rem;
   }
 }
 </style>
