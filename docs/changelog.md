@@ -309,3 +309,58 @@ out of scope for a tokens-only stage.
 - Sidebar quick-actions card — doesn't exist until Stage 7.
 - `FictionView.vue` layout — Stage 7's job, not Stage 6's.
 - Header structural redesign — explicitly deferred to Stage 8.
+
+### Patch 8 — `stage7-fictionview-rebuild.patch` (Fiction Page & Site Identity Redesign, Stage 7)
+
+**Files:** `src/views/FictionView.vue`, `src/config/author.schema.ts`,
+`eslint.config.ts`, `docs/fiction-page-redesign-plan.md`,
+`docs/web-novel-reader-architecture.md`
+
+- Rebuilt `FictionView.vue`'s layout per Stage 7: a hero
+  cover/title/author block with a compact status + genre + tag chip
+  row, a line-clamped synopsis with a "Show more"/"Show less" toggle
+  once it passes a length threshold, and a single primary action that
+  now reads saved reading progress ("Continue Reading" to the last
+  chapter vs. "Start Reading" to the first entry).
+- Split the old combined actions row into: the hero's single primary
+  CTA, and a new sidebar quick-actions card (favorite toggle + a
+  compact continue-reading readout with a relative "Saved ⟨date⟩"
+  line) — the quick-actions card is glass-treated per Stage 6's
+  chrome scope, structure-only (`border-width`/`border-style`),
+  letting `.glass-surface` own the color, same convention as the
+  footer.
+- Added a plain (non-glass, per Stage 6 scope) author card: avatar,
+  name, bio, and social links from `author.ts` — no link out yet,
+  since there's nowhere to link to until Stage 9's About Author page
+  exists.
+- Refreshed the index preview strip from plain text pills to small
+  label cards (glyph + label), still using the existing intrinsic
+  scroll/track approach from the earlier index-UI session.
+- Added `author.backgroundImage` (optional, unset by default) to
+  `author.schema.ts` for a decorative background on illustrated
+  reading pages. `FictionView` probes the configured path with a
+  plain image load before applying it as a CSS custom property, so an
+  unset field or an unresolvable path falls back to the page's
+  existing flat theme background — never a broken image. Added
+  `Image` to `eslint.config.ts`'s allowed globals for the probe.
+- Left `HomeView.vue` untouched; a new deferred Stage 10 was appended
+  to the end of `docs/fiction-page-redesign-plan.md` to pick this
+  option up there later, once Stage 8 (header) has landed.
+
+**What did NOT change:** the header (Stage 8, separate follow-up), the
+home page (deferred Stage 10, appended to the end of the plan doc),
+and the About Author page (Stage 9, still not built — the author card
+here has no outbound link because of that).
+
+**Verification:**
+- `npm run type-check` — 0 errors
+- `npm run test` — 28/28 passing
+- `npm run lint` — 0 errors (after adding `Image` to the allowed
+  globals list)
+- Manual review against the current single local fiction's full
+  33-entry, 3-index shape is still blocked on the same not-yet-
+  migrated local database noted under step 7/8 at the top of this
+  log; the zero-index and single-index empty/minimal cases were
+  reasoned through in the markup (`v-if="indexes.length"`, `v-if=
+  "index.entries.length > 1"`) but not manually clicked through
+  against real data.

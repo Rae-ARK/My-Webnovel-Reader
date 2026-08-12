@@ -21,6 +21,7 @@ export default tseslint.config(
         document: 'readonly',
         KeyboardEvent: 'readonly',
         HTMLElement: 'readonly',
+        Image: 'readonly',
       },
     },
     rules: {

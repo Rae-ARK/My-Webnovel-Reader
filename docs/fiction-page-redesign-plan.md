@@ -279,7 +279,7 @@ isolated set of design tokens, applied only to chrome surfaces.
 
 ---
 
-## Stage 7 — FictionView layout rebuild (Royal Road-inspired)
+## Stage 7 — FictionView layout rebuild (Royal Road-inspired) — Done
 
 **Goal:** the actual page redesign, now that config (Stage 1–4),
 layout technique (Stage 5), and surface treatment (Stage 6) are all in
@@ -315,8 +315,33 @@ place.
 single-reader, static, read-only app): reviews/ratings, "Others also
 liked" carousel, achievements/trophies, notification bell, login.
 
+**Implementation notes**
+- The hero's single primary action now reads the reader's saved
+  progress: "Continue Reading" to their last chapter when
+  `ReadingProgress` exists for the fiction, "Start Reading" to the
+  first entry otherwise. This absorbed what used to be a second,
+  separate favorite-toggle button in the hero — favoriting moved to
+  the sidebar quick-actions card, alongside a compact "continue
+  reading" readout, per this stage's scope note above.
+- Added `author.backgroundImage` (optional, unset by default) to
+  `author.schema.ts` — a decorative background for illustrated
+  reading pages, styled after the reference's side-panel artwork.
+  `FictionView` probes the path with a plain image load before using
+  it, so an unset field or a path that doesn't resolve falls back to
+  the page's normal flat theme background rather than a broken image
+  or missing-file console noise. Not wired into any other page yet —
+  see the new deferred stage at the end of this document.
+- Author card intentionally has no link out yet, since there's
+  nowhere to link to — Stage 9's About Author page doesn't exist.
+  Revisit once that stage lands.
+- The author card is not glass-treated; per Stage 6's chrome-only
+  scope note, the sidebar quick-actions card is the one new surface
+  in this stage that qualifies.
+
 **What does NOT change yet**
 - Header — not touched here; see Stage 8.
+- Home page — not touched here; see the deferred stage appended at
+  the end of this document.
 
 **Verification**
 - Full manual pass against the current single local fiction
@@ -409,3 +434,27 @@ fictions in the Fictions tab.
 5. **Home page icon treatment** — Stage 2 raises whether the home page
    heading should show a larger "hero" icon or stay text-only, while
    the header brand always stays compact. No default assumed yet.
+
+---
+
+## Stage 10 — Home page pass (deferred)
+
+**Not part of this plan's original scope.** Recorded here, appended
+after every other stage, so it isn't picked up before the pages it
+depends on are actually settled.
+
+Stage 7 introduced `author.backgroundImage` and gave `FictionView` an
+illustrated-background treatment, but intentionally left `HomeView`
+untouched. Revisit the home page once Stage 8 (header) has landed, so
+this isn't designed against a header that's about to change out from
+under it. Candidate scope for that pass:
+
+- Decide whether `HomeView` should pick up the same
+  `author.backgroundImage` treatment as `FictionView`, a distinct
+  image/config field of its own, or stay flat by default.
+- Resolve open question 5 above (hero icon treatment) in the same
+  pass, since both concern the home page's top-of-page identity.
+
+This is deliberately left as a placeholder rather than a staged plan
+the way Stages 1–9 are — write the actual stage breakdown when this
+work is picked up, once the header decision it depends on exists.

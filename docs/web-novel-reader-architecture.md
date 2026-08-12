@@ -837,12 +837,24 @@ folder's `README.md`):
 - `profile-full.png` / `banner.jpg` — reserved for the future About
   Author page (see `docs/fiction-page-redesign-plan.md`); not rendered
   anywhere yet.
+- `background.jpg` (or any raster/vector path set on
+  `author.backgroundImage`) — an optional decorative background for
+  illustrated reading pages, in the spirit of Royal Road's side-panel
+  artwork. Currently rendered on `FictionView` only (Stage 7 of the
+  fiction-page redesign plan).
 
 Until the About Author page exists, an unset `author.banner` has no
 visible effect. Once that page is built, the plan is for it to render
 a generic blurred-gradient banner (in the spirit of Royal Road's
 default profile banner) when `banner` is unset, and the real image
 when it is.
+
+`author.backgroundImage` is unset by default, in which case pages that
+would otherwise use it just render their normal flat theme background
+— no code change needed to opt out. The app also probes the configured
+path at runtime before using it, so a typo'd path or a missing file
+falls back the same way a genuinely unset field does, rather than
+showing a broken image.
 
 ## 23c. Frosted Glass Chrome Tokens
 

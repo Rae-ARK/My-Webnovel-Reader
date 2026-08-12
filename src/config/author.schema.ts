@@ -55,6 +55,22 @@ export const authorConfigSchema = z.object({
   /** Free text for the future About Author page. */
   bio: z.string().min(1).default(DEFAULT_BIO),
 
+  /**
+   * Optional decorative background image for illustrated reading
+   * pages (currently: FictionView — see Stage 7 of
+   * `docs/fiction-page-redesign-plan.md`). Styled after Royal Road's
+   * side-panel artwork: a tall image bled behind the page, faded into
+   * the flat theme background at the top and bottom edges so it never
+   * fights with the header/footer.
+   *
+   * Left unset by default, in which case the page renders its normal
+   * flat theme background — no code change needed to opt out. The app
+   * also probes the path at runtime before using it, so a typo'd path
+   * or a file that isn't actually there quietly falls back to the
+   * flat background too, instead of showing a broken image.
+   */
+  backgroundImage: z.string().min(1).optional(),
+
   /** ISO date string (e.g. "2025-04-24"), shown as "Joined" on the future About Author page. Optional. */
   joined: z.string().min(1).optional(),
 
