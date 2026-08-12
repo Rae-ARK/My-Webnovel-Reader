@@ -1,0 +1,69 @@
+/* @vitest-environment jsdom */
+
+import { describe, expect, it, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+
+const mockSite = vi.hoisted(() => ({ value: null as unknown }))
+
+vi.mock('../../../config/site', () => ({
+  default: new Proxy(
+    {},
+    {
+      get(_target, prop) {
+        return (mockSite.value as Record<string, unknown>)[prop as string]
+      },
+    },
+  ),
+}))
+
+import SiteHeader from '../SiteHeader.vue'
+
+const mountOptions = {
+  global: {
+    stubs: {
+      RouterLink: {
+        props: ['to'],
+        template: '<a :href="typeof to === \'string\' ? to : \'\'"><slot /></a>',
+      },
+    },
+  },
+}
+
+const baseConfig = {
+  site: {
+    title: 'Web Novel Reader',
+    icon: '/icon.svg',
+  },
+}
+
+describe('SiteHeader', () => {
+  it('renders the site title and brand icon from config', () => {
+    mockSite.value = baseConfig
+
+    const wrapper = mount(SiteHeader, mountOptions)
+
+    expect(wrapper.text()).toContain('Web Novel Reader')
+    expect(wrapper.find('img.brand-icon').attributes('src')).toBe('/icon.svg')
+  })
+
+  it('links the brand to the home route', () => {
+    mockSite.value = baseConfig
+
+    const wrapper = mount(SiteHeader, mountOptions)
+
+    expect(wrapper.find('a.brand').attributes('href')).toBe('/')
+  })
+
+  it('renders Library and Search navigation links', () => {
+    mockSite.value = baseConfig
+
+    const wrapper = mount(SiteHeader, mountOptions)
+    const navLinks = wrapper.findAll('nav a')
+
+    expect(navLinks).toHaveLength(2)
+    expect(navLinks[0]?.attributes('href')).toBe('/library')
+    expect(navLinks[0]?.text()).toBe('Library')
+    expect(navLinks[1]?.attributes('href')).toBe('/search')
+    expect(navLinks[1]?.text()).toBe('Search')
+  })
+})

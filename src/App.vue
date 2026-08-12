@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import site from './config/site'
 import { useThemeStore } from './stores/theme.store'
+import SiteHeader from './components/layout/SiteHeader.vue'
 import SiteFooter from './components/layout/SiteFooter.vue'
 
 const themeStore = useThemeStore()
@@ -12,30 +12,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <header class="site-header">
-    <RouterLink
-      to="/"
-      class="brand"
-    >
-      <img
-        :src="site.site.icon"
-        alt=""
-        class="brand-icon"
-        width="24"
-        height="24"
-      >
-      {{ site.site.title }}
-    </RouterLink>
-
-    <nav aria-label="Main navigation">
-      <RouterLink to="/library">
-        Library
-      </RouterLink>
-      <RouterLink to="/search">
-        Search
-      </RouterLink>
-    </nav>
-  </header>
+  <SiteHeader />
 
   <main>
     <RouterView />
