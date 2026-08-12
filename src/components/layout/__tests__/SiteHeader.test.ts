@@ -1,7 +1,8 @@
 /* @vitest-environment jsdom */
 
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 
 const mockSite = vi.hoisted(() => ({ value: null as unknown }))
 
@@ -37,6 +38,11 @@ const baseConfig = {
 }
 
 describe('SiteHeader', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    window.localStorage.clear()
+  })
+
   it('renders the site title and brand icon from config', () => {
     mockSite.value = baseConfig
 
@@ -65,5 +71,35 @@ describe('SiteHeader', () => {
     expect(navLinks[0]?.text()).toBe('Library')
     expect(navLinks[1]?.attributes('href')).toBe('/search')
     expect(navLinks[1]?.text()).toBe('Search')
+  })
+
+  it('renders a theme toggle defaulting to light, labeled for the next theme', () => {
+    mockSite.value = baseConfig
+
+    const wrapper = mount(SiteHeader, mountOptions)
+    const toggle = wrapper.find('.theme-toggle')
+
+    expect(toggle.exists()).toBe(true)
+    expect(toggle.attributes('aria-label')).toBe('Switch to cream theme')
+    expect(toggle.text()).toBe('☀')
+  })
+
+  it('cycles light → cream → dark → light on repeated clicks', async () => {
+    mockSite.value = baseConfig
+
+    const wrapper = mount(SiteHeader, mountOptions)
+    const toggle = wrapper.find('.theme-toggle')
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-label')).toBe('Switch to dark theme')
+    expect(toggle.text()).toBe('◐')
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-label')).toBe('Switch to light theme')
+    expect(toggle.text()).toBe('☾')
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-label')).toBe('Switch to cream theme')
+    expect(toggle.text()).toBe('☀')
   })
 })

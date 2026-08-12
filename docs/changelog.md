@@ -364,3 +364,49 @@ here has no outbound link because of that).
   reasoned through in the markup (`v-if="indexes.length"`, `v-if=
   "index.entries.length > 1"`) but not manually clicked through
   against real data.
+
+### Patch 9 — `stage8-header-theme-toggle.patch` (Fiction Page & Site Identity Redesign, Stage 8)
+
+**Files:** `src/components/layout/SiteHeader.vue`,
+`src/components/layout/__tests__/SiteHeader.test.ts`,
+`docs/fiction-page-redesign-plan.md`
+
+Implements Stage 8 of `docs/fiction-page-redesign-plan.md`, choosing
+**Option A** (keep the current minimal top bar, add a theme toggle,
+lowest risk/smallest change) over Options B/C's structural header
+redesigns.
+
+- Added a theme-toggle `IconButton` to `SiteHeader.vue`, wrapped
+  together with the existing `Library`/`Search` nav in a new
+  `.header-actions` flex container so the brand block stays pinned
+  left and both right-side actions share a `gap`.
+- The toggle calls the existing `theme.store.ts`'s `setTheme`,
+  cycling `light → cream → dark → light` via
+  `themeStore.availableThemes` and a wrap-around index — no new
+  store/state.
+- Glyph shows the *current* theme (`☀`/`◐`/`☾`); `aria-label` names
+  the theme a click switches *to* (e.g. `Switch to cream theme`),
+  following the existing plain-Unicode-glyph IconButton convention
+  used elsewhere (`Aa`, `×`, `←`, `→`, `⚙`) instead of adding an icon
+  library for one control.
+- `SiteHeader.test.ts` gained a `beforeEach` Pinia setup (needed once
+  the component reads from a store) and two new cases: the default
+  glyph/label, and the full three-click cycle back to light.
+- Marked Stage 8 "Done" in `docs/fiction-page-redesign-plan.md`, with
+  the Option A/B/C record kept for context and a short note on what
+  changed and why the footer's separate three-button theme picker was
+  left alone.
+
+**What did NOT change:** the footer's existing theme picker, the
+brand block and nav links (already matched Option A's description
+before this patch), and no structural/layout header redesign — that
+would have been Option B or C, not what this stage called for.
+
+**Verification:**
+- `npm run type-check` — 0 errors
+- `npm run test` — 30/30 passing (28 prior + 2 new `SiteHeader` cases)
+- `npm run lint` — 10 pre-existing warnings, 0 errors, nothing new
+- `npm run build` — succeeded
+- Manual check: default (light) shows `☀`/"Switch to cream theme";
+  clicking cycles through all three themes and wraps back to light;
+  toggle stays legible against the glass surface in all three themes.

@@ -353,11 +353,9 @@ liked" carousel, achievements/trophies, notification bell, login.
 
 ---
 
-## Stage 8 — Header (deferred, separate follow-up)
+## Stage 8 — Header — Done
 
-**Not part of this plan's scope.** Recorded here only so it isn't
-forgotten. Candidate directions to evaluate once Stages 1–7 are
-settled:
+Candidate directions considered:
 
 - **Option A:** keep the current minimal top bar (brand icon + name
   from Stage 2, theme toggle, search), lightly glass-treated per Stage
@@ -369,10 +367,43 @@ settled:
   slim sticky bar inside `FictionView`/`ReaderView` where screen space
   for content matters more.
 
-This gets its own planning pass once there's a working, redesigned
-footer and fiction page to design the header around — deciding the
-header first, before the page it sits above, would be building it
-backwards.
+**Decision: Option A.** The brand block and the `Library`/`Search` nav
+links (Stage 2) and the glass treatment (Stage 6) were already in
+place, so the only gap against Option A's description was the missing
+theme toggle — Options B and C would have meant a structural redesign
+this stage's "lowest risk, smallest change" framing didn't call for.
+
+**What changed**
+- `SiteHeader.vue` gained a theme-toggle `IconButton`, grouped with
+  the existing nav under a new `.header-actions` wrapper so the brand
+  stays pinned left and both actions sit right, per the existing
+  `space-between` layout.
+- The toggle cycles `light → cream → dark → light` on each click
+  (`themeStore.availableThemes`, wrapping via modulo), reusing
+  `theme.store.ts` rather than adding new state.
+- Its glyph reflects the *current* theme and its `aria-label` names
+  the theme a click will switch *to* (e.g. `Switch to cream theme`),
+  matching the existing IconButton convention of plain Unicode
+  glyphs (`Aa`, `×`, `←`, `→`, `⚙`) rather than pulling in an icon
+  library for one control.
+
+**What did NOT change:** the footer's full three-button theme picker
+was left as-is — the header toggle is a quick one-click cycle for the
+common case, not a replacement for the footer's explicit
+pick-any-theme control, and removing the latter was never part of
+Option A's brief. No layout/structural header redesign (that's what
+Options B/C would have been).
+
+**Verification**
+- `npm run type-check` — 0 errors
+- `npm run test` — 30/30 passing (2 new `SiteHeader` cases: default
+  glyph/label, and the full cycle)
+- `npm run lint` — 10 pre-existing warnings, 0 errors, nothing new
+- `npm run build` — succeeded
+- Manual check: default (light) shows `☀` and offers to switch to
+  cream; repeated clicks cycle through all three themes and back;
+  toggle remains reachable and legible against the glass surface in
+  all three themes.
 
 ---
 

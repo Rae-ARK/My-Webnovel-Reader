@@ -1,5 +1,34 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import site from '../../config/site'
+import { useThemeStore, type Theme } from '../../stores/theme.store'
+import IconButton from '../ui/IconButton.vue'
+
+const themeStore = useThemeStore()
+
+/**
+ * Single-glyph representation of each theme, matching the existing
+ * IconButton convention elsewhere in the app (plain Unicode
+ * characters — see ReaderView's "Aa"/"×" and the dev preview's
+ * "←"/"→"/"⚙" — rather than an icon library).
+ */
+const THEME_GLYPHS: Record<Theme, string> = {
+  light: '☀',
+  cream: '◐',
+  dark: '☾',
+}
+
+const themeGlyph = computed(() => THEME_GLYPHS[themeStore.theme])
+
+const nextTheme = computed<Theme>(() => {
+  const themes = themeStore.availableThemes
+  const currentIndex = themes.indexOf(themeStore.theme)
+  return themes[(currentIndex + 1) % themes.length] as Theme
+})
+
+function cycleTheme() {
+  themeStore.setTheme(nextTheme.value)
+}
 </script>
 
 <template>
@@ -17,14 +46,24 @@ import site from '../../config/site'
       {{ site.site.title }}
     </RouterLink>
 
-    <nav aria-label="Main navigation">
-      <RouterLink to="/library">
-        Library
-      </RouterLink>
-      <RouterLink to="/search">
-        Search
-      </RouterLink>
-    </nav>
+    <div class="header-actions">
+      <nav aria-label="Main navigation">
+        <RouterLink to="/library">
+          Library
+        </RouterLink>
+        <RouterLink to="/search">
+          Search
+        </RouterLink>
+      </nav>
+
+      <IconButton
+        class="theme-toggle"
+        :label="`Switch to ${nextTheme} theme`"
+        @click="cycleTheme"
+      >
+        {{ themeGlyph }}
+      </IconButton>
+    </div>
   </header>
 </template>
 
@@ -57,8 +96,18 @@ import site from '../../config/site'
   border-radius: var(--radius-sm, 0.25rem);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 nav {
   display: flex;
   gap: 1rem;
+}
+
+.theme-toggle {
+  font-size: 1.1rem;
 }
 </style>
