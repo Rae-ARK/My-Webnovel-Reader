@@ -4,6 +4,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import './styles.css'
 import { appContainer } from './container'
+import site from './config/site'
+
+// index.html's <title> is static HTML in a Vite SPA and can't read
+// site.config.reader.ts at build time, so the real tab title is set
+// here at runtime. This means the very first paint briefly shows the
+// static fallback title from index.html before JS runs.
+document.title = site.site.title
 
 const router = createRouter({
   history: createWebHistory(),

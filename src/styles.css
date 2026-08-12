@@ -142,7 +142,15 @@ textarea:focus-visible {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 700;
+}
+
+.brand-icon {
+  display: block;
+  border-radius: var(--radius-sm, 0.25rem);
 }
 
 nav {

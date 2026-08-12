@@ -16,6 +16,13 @@ onMounted(() => {
       to="/"
       class="brand"
     >
+      <img
+        :src="site.site.icon"
+        alt=""
+        class="brand-icon"
+        width="24"
+        height="24"
+      >
       {{ site.site.title }}
     </RouterLink>
 

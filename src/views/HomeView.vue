@@ -24,7 +24,16 @@ onMounted(async () => {
         {{ site.site.author }}
       </p>
 
-      <h1>{{ site.site.title }}</h1>
+      <h1>
+        <img
+          :src="site.site.icon"
+          alt=""
+          class="hero-icon"
+          width="40"
+          height="40"
+        >
+        {{ site.site.title }}
+      </h1>
 
       <p>{{ site.site.description }}</p>
 
@@ -116,11 +125,22 @@ onMounted(async () => {
 }
 
 .hero h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
   max-width: 48rem;
   margin: 0;
   color: var(--text);
   font-size: clamp(2.5rem, 8vw, 5rem);
   line-height: 1;
+}
+
+.hero-icon {
+  flex-shrink: 0;
+  display: block;
+  width: clamp(2rem, 6vw, 3.5rem);
+  height: clamp(2rem, 6vw, 3.5rem);
+  border-radius: var(--radius-md, 0.5rem);
 }
 
 .hero > p:not(.eyebrow) {
